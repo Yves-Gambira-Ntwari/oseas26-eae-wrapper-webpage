@@ -186,18 +186,6 @@ Rules:
 
 ---
 
-## 10. AI use policy (from CONTRIBUTING.md)
-
-> AI is your assistant, not your author. If you cannot explain it, do not submit.
-
-- Fine: explaining unfamiliar code, reviewing code **you wrote**, drafting a test scaffold you then check, improving the grammar of your own documentation.
-- Not fine: submitting AI-generated features with minor changes, generating docs for code you don't understand, using AI to answer review comments for you.
-- **Disclose** meaningful AI help in your PR description (for example: "Assistant suggested the approach; I rewrote the logic and tested it on desktop and mobile").
-- Maintainers may ask you to walk through your changes. Everyone must be able to explain their own code.
-- Keep issue and PR discussion in your own words.
-
----
-
 ## 11. Definition of done
 
 - [ ] A page with a state dropdown and a district dropdown fed by real EAE data

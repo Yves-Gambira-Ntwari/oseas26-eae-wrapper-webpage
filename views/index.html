@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EAE map wrapper</title>
+    <link
+      rel="stylesheet"
+      href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
+    />
+    <link rel="stylesheet" href="../stylesheets/style.css" />
+  </head>
+  <body>
+    <div id="bar">
+      <label
+        >Country
+        <select id="country">
+          <option value="">Loading...</option>
+        </select>
+      </label>
+      <label
+        >State
+        <select id="state" disabled>
+          <option value="">Select a country first</option>
+        </select>
+      </label>
+      <label
+        >District
+        <select id="district" disabled>
+          <option value="">Select a state first</option>
+        </select>
+      </label>
+      <label
+        >Add layer
+        <select id="dataset" disabled>
+          <option value="">Select a state first</option>
+        </select>
+      </label>
+      <div id="info"></div>
+    </div>
+
+    <div id="wrap">
+      <div id="map"></div>
+      <div id="layers">
+        <h4>Layers</h4>
+        <div id="layerlist"></div>
+      </div>
+    </div>
+
+    <!-- Order matters: library -> config -> data -> embed -> main -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
+    <script src="../src/config.js"></script>
+    <script src="../src/data.js"></script>
+    <script src="../src/embed.js"></script>
+    <script src="../src/main.js"></script>
+  </body>
+</html>

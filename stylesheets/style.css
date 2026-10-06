@@ -1,0 +1,89 @@
+html,
+body {
+  height: 100%;
+  margin: 0;
+  font-family: sans-serif;
+}
+body {
+  display: flex;
+  flex-direction: column;
+}
+#bar {
+  padding: 8px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  align-items: flex-end;
+  background: #f4f4f4;
+  border-bottom: 1px solid #ddd;
+}
+label {
+  display: flex;
+  flex-direction: column;
+  font-size: 12px;
+  color: #444;
+  gap: 2px;
+}
+select {
+  min-width: 190px;
+  max-width: 280px;
+  padding: 4px;
+  font-size: 14px;
+}
+#info {
+  font-size: 12px;
+  color: #555;
+  flex-basis: 100%;
+  min-height: 14px;
+}
+#wrap {
+  flex: 1;
+  position: relative;
+  min-height: 0;
+}
+#map {
+  position: absolute;
+  inset: 0;
+}
+#layers {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  z-index: 1000;
+  background: #fff;
+  padding: 8px 10px;
+  border-radius: 6px;
+  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  font-size: 13px;
+  max-width: 280px;
+  max-height: 60%;
+  overflow: auto;
+  display: none;
+}
+#layers h4 {
+  margin: 0 0 6px;
+  font-size: 13px;
+}
+.row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 3px 0;
+}
+.sw {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 1px solid #333;
+  flex: none;
+}
+.row span.t {
+  flex: 1;
+}
+.row button {
+  border: 0;
+  background: none;
+  cursor: pointer;
+  font-size: 16px;
+  color: #a00;
+}
