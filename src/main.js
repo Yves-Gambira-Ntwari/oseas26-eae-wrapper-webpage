@@ -222,11 +222,16 @@ async function loadDistricts(list, token) {
 
 districtSel.addEventListener("change", () => {
   clearDistrictLayer();
-  if (!districtSel.value || !districtProp) return;
+  if (!districtSel.value || !districtProp) {
+    setClip(null); // no district: layers show the whole area again
+    say("");
+    return;
+  }
   const feats = districtFeatures.filter(
     (f) => (f.properties || {})[districtProp] === districtSel.value,
   );
   showDistrict(feats);
+  setClip(feats); // filter every layer to this district
   say("District: " + districtSel.value);
 });
 
@@ -243,9 +248,15 @@ datasetSel.addEventListener("change", async () => {
   say("Loading " + d.name_long + "...");
   try {
     const gj = await fetchGeoJSON(d);
-    const count = addDataLayer(d.id, d.name_long, gj);
+    const { shown, total } = addDataLayer(d.id, d.name_long, gj);
     renderLayerList();
-    say(d.name_long + ": " + count + " features");
+    say(
+      d.name_long +
+        ": " +
+        (shown === total
+          ? shown + " features"
+          : shown + " of " + total + " features in " + districtSel.value),
+    );
   } catch (e) {
     console.error(e);
     say(
