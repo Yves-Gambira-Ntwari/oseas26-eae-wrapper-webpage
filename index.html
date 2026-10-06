@@ -103,9 +103,15 @@
   <body>
     <div id="bar">
       <label
-        >State
-        <select id="state">
+        >Country
+        <select id="country">
           <option value="">Loading...</option>
+        </select>
+      </label>
+      <label
+        >State
+        <select id="state" disabled>
+          <option value="">Select a country first</option>
         </select>
       </label>
       <label
@@ -134,7 +140,6 @@
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
     <script>
       const API = "https://api.energyaccessexplorer.org";
-      const INDIA_ID = "7d10f6b0-32b1-4803-b202-4c4325cc4d83";
       const DRAWABLE = ["points", "lines", "polygons", "polygons-boundaries"];
       const COLORS = [
         "#e6194b",
@@ -149,6 +154,7 @@
         "#000075",
       ];
 
+      const countrySel = document.getElementById("country");
       const stateSel = document.getElementById("state");
       const districtSel = document.getElementById("district");
       const datasetSel = document.getElementById("dataset");
@@ -159,18 +165,22 @@
       const say = (t) => (info.textContent = t);
 
       // ---- Map -----------------------------------------------------------
-      const map = L.map("map", { preferCanvas: true }).setView([22.5, 79], 5); // India
+      // World view: the country is not known until the user picks one.
+      const map = L.map("map", { preferCanvas: true }).setView([20, 0], 2);
       L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
         maxZoom: 19,
         attribution: "&copy; OpenStreetMap contributors",
       }).addTo(map);
 
+      let countries = [];
       let states = [];
       let datasets = [];
       let districtFeatures = [];
+      let districtProp = null; // name of the property that holds district names
       let districtLayer = null;
       const active = {}; // dataset id -> { layer, color, name }
       let colorIdx = 0;
+      let selToken = 0; // ignores answers that arrive after the user changed their mind
 
       // ---- Helpers -------------------------------------------------------
       async function api(path, params) {
@@ -179,20 +189,33 @@
         return res.json();
       }
 
+      const esc = (s) =>
+        String(s).replace(
+          /[&<>"']/g,
+          (c) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#39;",
+            })[c],
+        );
+
       function fill(select, items, placeholder) {
         select.innerHTML =
           '<option value="">' +
-          placeholder +
+          esc(placeholder) +
           "</option>" +
           items
             .map(
               (i) =>
                 '<option value="' +
-                i.value +
+                esc(i.value) +
                 '"' +
                 (i.disabled ? " disabled" : "") +
                 ">" +
-                i.label +
+                esc(i.label) +
                 "</option>",
             )
             .join("");
@@ -204,7 +227,8 @@
           .filter(([, v]) => v !== null && v !== "")
           .slice(0, 12)
           .map(
-            ([k, v]) => "<tr><td><b>" + k + "</b></td><td>" + v + "</td></tr>",
+            ([k, v]) =>
+              "<tr><td><b>" + esc(k) + "</b></td><td>" + esc(v) + "</td></tr>",
           )
           .join("");
         return rows
@@ -214,37 +238,90 @@
 
       function fitEnvelope(env) {
         // envelope = [minX, minY, maxX, maxY] -> Leaflet [[lat, lng], [lat, lng]]
+        // Some geographies may have no envelope, so check before zooming.
+        if (!Array.isArray(env) || env.length < 4) return;
         map.fitBounds([
           [env[1], env[0]],
           [env[3], env[2]],
         ]);
       }
 
-      // ---- 1. States -----------------------------------------------------
-      async function loadStates() {
+      function hasVectorFile(d) {
+        return (d.source_files || []).some((f) => f.func === "vectors");
+      }
+
+      // ---- 1. Countries (top of the tree: no parent) ---------------------
+      async function loadCountries() {
+        try {
+          countries = await api("/geographies", {
+            select: "id,name,adm,envelope,parent_id",
+            parent_id: "is.null",
+            order: "name.asc",
+          });
+          fill(
+            countrySel,
+            countries.map((c) => ({ value: c.id, label: c.name })),
+            "Select a country...",
+          );
+        } catch (e) {
+          console.error(e);
+          say("Could not load countries: " + e.message);
+        }
+      }
+
+      countrySel.addEventListener("change", async () => {
+        const token = ++selToken;
+        clearAllLayers();
+        clearDistrict();
+        states = [];
+        datasets = [];
+        fill(stateSel, [], "Loading...");
+        fill(districtSel, [], "Select a state first");
+        fill(datasetSel, [], "Select a state first");
+
+        const country = countries.find((c) => c.id === countrySel.value);
+        if (!country) {
+          fill(stateSel, [], "Select a country first");
+          say("");
+          return;
+        }
+
+        fitEnvelope(country.envelope);
+        say(country.name + " selected");
+
+        await loadStates(country.id);
+        if (token !== selToken) return;
+
+        // A country without sub-areas: use the country itself.
+        if (states.length === 0) selectGeography(country, token);
+      });
+
+      // ---- 2. States: children of the chosen country ---------------------
+      async function loadStates(countryId) {
         try {
           states = await api("/geographies", {
             select: "id,name,adm,envelope,parent_id",
-            parent_id: "eq." + INDIA_ID,
+            parent_id: "eq." + countryId,
             order: "name.asc",
           });
           fill(
             stateSel,
             states.map((s) => ({ value: s.id, label: s.name })),
-            "Select a state...",
+            states.length ? "Select a state..." : "No sub-areas",
           );
         } catch (e) {
           console.error(e);
+          states = [];
+          fill(stateSel, [], "Error");
           say("Could not load states: " + e.message);
         }
       }
 
-      // ---- 2. State chosen: zoom, load datasets and districts ------------
-      stateSel.addEventListener("change", async () => {
+      stateSel.addEventListener("change", () => {
+        const token = ++selToken;
         clearAllLayers();
         clearDistrict();
-        fill(districtSel, [], "Loading...");
-        fill(datasetSel, [], "Loading...");
+        datasets = [];
 
         const geo = states.find((s) => s.id === stateSel.value);
         if (!geo) {
@@ -256,9 +333,17 @@
 
         fitEnvelope(geo.envelope);
         say(geo.name + " selected");
+        selectGeography(geo, token);
+      });
 
+      // ---- 3. A geography is chosen: load its datasets and districts -----
+      async function selectGeography(geo, token) {
+        fill(districtSel, [], "Loading...");
+        fill(datasetSel, [], "Loading...");
+
+        let list;
         try {
-          datasets = await api("/datasets", {
+          list = await api("/datasets", {
             select: "id,name,name_long,type,source_files",
             geography_id: "eq." + geo.id,
             name_long: "not.is.null",
@@ -266,11 +351,14 @@
           });
         } catch (e) {
           console.error(e);
+          if (token !== selToken) return;
           say("Could not load datasets: " + e.message);
           fill(datasetSel, [], "Error");
           fill(districtSel, [], "Error");
           return;
         }
+        if (token !== selToken) return;
+        datasets = list;
 
         fill(
           datasetSel,
@@ -286,16 +374,32 @@
           "Add a layer... (" + datasets.length + ")",
         );
 
-        loadDistricts(datasets);
-      });
-
-      function hasVectorFile(d) {
-        return (d.source_files || []).some((f) => f.func === "vectors");
+        loadDistricts(datasets, token);
       }
 
-      // ---- 3. Districts --------------------------------------------------
-      async function loadDistricts(list) {
-        const dd = list.find((d) => d.name === "district-boundaries");
+      // ---- 4. Districts --------------------------------------------------
+      // Dataset names and property names differ between countries and states,
+      // so look for them with loose rules instead of one fixed name.
+      function findDistrictDataset(list) {
+        return (
+          list.find((d) => d.name === "district-boundaries") ||
+          list.find((d) => /district/i.test(d.name || "") && hasVectorFile(d))
+        );
+      }
+
+      function detectNameProp(features) {
+        const sample = (features.find((f) => f.properties) || {}).properties;
+        const keys = Object.keys(sample || {});
+        return (
+          keys.find((k) => /^district(_?n(ame)?)?$/i.test(k)) ||
+          keys.find((k) => /district/i.test(k)) ||
+          keys.find((k) => /name/i.test(k)) ||
+          null
+        );
+      }
+
+      async function loadDistricts(list, token) {
+        const dd = findDistrictDataset(list);
         const file =
           dd && (dd.source_files || []).find((f) => f.func === "vectors");
         if (!file) {
@@ -306,11 +410,19 @@
           const res = await fetch(file.endpoint);
           if (!res.ok) throw new Error("HTTP " + res.status);
           const gj = await res.json();
-          districtFeatures = gj.features;
+          if (token !== selToken) return;
+
+          districtFeatures = gj.features || [];
+          districtProp = detectNameProp(districtFeatures);
+          if (!districtProp) {
+            fill(districtSel, [], "No district names found");
+            return;
+          }
+
           const names = [
             ...new Set(
               districtFeatures
-                .map((f) => f.properties.District_N)
+                .map((f) => (f.properties || {})[districtProp])
                 .filter(Boolean),
             ),
           ].sort();
@@ -320,6 +432,7 @@
             "Select a district...",
           );
         } catch (e) {
+          if (token !== selToken) return;
           console.warn("District file not readable:", e);
           fill(districtSel, [], "District list unavailable");
           say("Could not read district file (probably CORS): " + e.message);
@@ -332,6 +445,7 @@
           districtLayer = null;
         }
         districtFeatures = [];
+        districtProp = null;
       }
 
       districtSel.addEventListener("change", () => {
@@ -339,9 +453,9 @@
           map.removeLayer(districtLayer);
           districtLayer = null;
         }
-        if (!districtSel.value) return;
+        if (!districtSel.value || !districtProp) return;
         const feats = districtFeatures.filter(
-          (f) => f.properties.District_N === districtSel.value,
+          (f) => (f.properties || {})[districtProp] === districtSel.value,
         );
         districtLayer = L.geoJSON(
           { type: "FeatureCollection", features: feats },
@@ -358,7 +472,7 @@
         say("District: " + districtSel.value);
       });
 
-      // ---- 4. Layers -----------------------------------------------------
+      // ---- 5. Layers -----------------------------------------------------
       datasetSel.addEventListener("change", async () => {
         const d = datasets.find((x) => x.id === datasetSel.value);
         datasetSel.value = "";
@@ -427,7 +541,7 @@
             a.color +
             '"></div>' +
             '<span class="t">' +
-            a.name +
+            esc(a.name) +
             "</span>" +
             '<button title="Remove">&times;</button>';
           row.querySelector("button").onclick = () => {
@@ -446,7 +560,7 @@
         renderLayerList();
       }
 
-      loadStates();
+      loadCountries();
     </script>
   </body>
 </html>
