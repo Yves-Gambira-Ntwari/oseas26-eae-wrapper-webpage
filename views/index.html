@@ -1,5 +1,5 @@
 <!doctype html>
-<html>
+<html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -8,50 +8,127 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
     />
-    <link rel="stylesheet" href="../stylesheets/style.css" />
+    <link rel="stylesheet" href="css/style.css" />
   </head>
   <body>
-    <div id="bar">
-      <label
-        >Country
-        <select id="country">
-          <option value="">Loading...</option>
-        </select>
-      </label>
-      <label
-        >State
-        <select id="state" disabled>
-          <option value="">Select a country first</option>
-        </select>
-      </label>
-      <label
-        >District
-        <select id="district" disabled>
-          <option value="">Select a state first</option>
-        </select>
-      </label>
-      <label
-        >Add layer
-        <select id="dataset" disabled>
-          <option value="">Select a state first</option>
-        </select>
-      </label>
-      <div id="info"></div>
-    </div>
+    <div id="app">
+      <div id="main">
+        <!-- LEFT: brand header + category rail + dataset panel -->
+        <div id="side">
+          <header id="brand">
+            <h1 id="title">Select a country</h1>
+            <button id="about-btn" type="button" aria-label="About this map">i</button>
+          </header>
 
-    <div id="wrap">
-      <div id="map"></div>
-      <div id="layers">
-        <h4>Layers</h4>
-        <div id="layerlist"></div>
+          <div id="side-body">
+            <nav id="rail" aria-label="Dataset categories">
+              <button type="button" class="rail-item" data-cat="census">Census</button>
+              <button type="button" class="rail-item" data-cat="demand">Demand</button>
+              <button type="button" class="rail-item" data-cat="supply">Supply</button>
+              <button type="button" class="rail-item" data-cat="other">Other</button>
+              <button type="button" class="rail-item active" data-cat="all">All</button>
+            </nav>
+
+            <aside id="panel">
+              <section id="area" aria-label="Choose an area">
+                <label>Country
+                  <select id="country"><option value="">Loading...</option></select>
+                </label>
+                <label>State
+                  <select id="state" disabled><option value="">Select a country first</option></select>
+                </label>
+                <label>District
+                  <select id="district" disabled><option value="">Select a state first</option></select>
+                </label>
+                <div id="info" role="status" aria-live="polite"></div>
+              </section>
+
+              <h2 id="panel-title">All</h2>
+              <ul id="datasets"></ul>
+            </aside>
+          </div>
+        </div>
+
+        <!-- CENTRE: tabs + map -->
+        <main id="stage">
+          <button id="menu-btn" type="button" aria-label="Open menu">&#9776;</button>
+          <div id="tabs" role="tablist">
+            <button type="button" class="tab active" role="tab" data-tab="data">DATA</button>
+            <button type="button" class="tab" role="tab" data-tab="analysis">ANALYSIS</button>
+          </div>
+          <div id="map"></div>
+        </main>
+
+        <!-- RIGHT: legend / analysis, preview of the selected place -->
+        <aside id="results" aria-label="Results">
+          <div id="results-head"><span id="results-title">Legend</span></div>
+          <div id="results-body"></div>
+
+          <section id="preview" aria-label="Selected place preview">
+            <div id="preview-head"><span id="preview-label">No place selected</span></div>
+            <div id="preview-map">
+              <div id="minimap"></div>
+              <div id="preview-empty">Select a country to see a preview of the place</div>
+            </div>
+            <div id="preview-credit">&copy; OpenStreetMap contributors</div>
+          </section>
+
+          <div id="results-foot">
+            <button type="button" id="help-btn">Help</button>
+            <button type="button" id="disclaimer-btn">Disclaimer</button>
+          </div>
+        </aside>
       </div>
+
+      <footer id="footer"><span>Wrapper for Energy Access Explorer data</span></footer>
     </div>
 
-    <!-- Order matters: library -> config -> data -> embed -> main -->
+    <!-- Three-dot menu (filled by main.js) -->
+    <div id="ds-menu" role="menu" hidden></div>
+
+    <!-- Dataset info -->
+    <dialog id="info-dialog" aria-labelledby="info-title">
+      <header class="info-head">
+        <h3 id="info-title"></h3>
+        <button type="button" id="info-close" aria-label="Close">&times;</button>
+      </header>
+      <div id="info-body"></div>
+    </dialog>
+
+    <!-- Set values manually -->
+    <dialog id="values-dialog" aria-labelledby="values-title">
+      <h3 id="values-title"></h3>
+      <div class="values-grid">
+        <label>Color
+          <span class="values-color-row">
+            <input type="color" id="values-color" />
+            <input type="text" id="values-hex" maxlength="7" placeholder="#e6194b" />
+          </span>
+        </label>
+        <label>Opacity (0-100)
+          <input type="number" id="values-opacity" min="0" max="100" step="5" />
+        </label>
+      </div>
+      <p id="values-error" class="values-error" role="alert"></p>
+      <div class="values-actions">
+        <button type="button" id="values-cancel" class="ghost">Cancel</button>
+        <button type="button" id="values-apply">Apply</button>
+      </div>
+    </dialog>
+
+    <!-- Help / Disclaimer -->
+    <dialog id="dialog">
+      <h3 id="dialog-title"></h3>
+      <p id="dialog-text"></p>
+      <button type="button" id="dialog-close">Close</button>
+    </dialog>
+
+    <!-- Order matters: library -> config -> data -> embed -> preview -> main -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="../src/config.js"></script>
-    <script src="../src/data.js"></script>
-    <script src="../src/embed.js"></script>
-    <script src="../src/main.js"></script>
+    <script src="src/config.js"></script>
+    <script src="src/data.js"></script>
+    <script src="src/embed.js"></script>
+    <script src="src/preview.js"></script>
+    <script src="src/main.js"></script>
   </body>
 </html>
