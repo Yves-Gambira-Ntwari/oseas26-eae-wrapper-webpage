@@ -29,6 +29,11 @@ let menuDatasetId = null; // dataset whose three-dot menu is open
 const loadingIds = new Set(); // datasets currently downloading
 const advOpen = new Set(); // datasets showing their advanced controls
 
+// URL state: read once when the page opens.
+// ?country=<id>&state=<id>&district=<name>&layers=<id>,<id>
+const initialParams = new URLSearchParams(location.search);
+let restoring = initialParams.has("country"); // don't overwrite the URL while restoring
+
 // <input type="color"> only accepts #rrggbb.
 const hexOf = (c) => (/^#[0-9a-f]{6}$/i.test(c) ? c : "#888888");
 const safeUrl = (u) => (/^https?:\/\//i.test(u || "") ? u : "");
@@ -71,6 +76,19 @@ function resetLayers() {
   closeMenu();
 }
 
+// ---- URL state: write the current selection into the address bar -----------
+function syncUrl() {
+  if (restoring) return;
+  const p = new URLSearchParams();
+  if (countrySel.value) p.set("country", countrySel.value);
+  if (stateSel.value) p.set("state", stateSel.value);
+  if (districtSel.value) p.set("district", districtSel.value);
+  const ids = Object.keys(active);
+  if (ids.length) p.set("layers", ids.join(","));
+  const q = p.toString();
+  history.replaceState(null, "", location.pathname + (q ? "?" + q : ""));
+}
+
 // ---- Left panel: dataset list ----------------------------------------------
 function advHtml(id) {
   const a = active[id];
@@ -78,17 +96,28 @@ function advHtml(id) {
   return (
     '<div class="adv">' +
     '<div class="adv-line"><span>Color</span>' +
-    '<input type="color" class="adv-color" value="' + hexOf(a.color) + '" /></div>' +
+    '<input type="color" class="adv-color" value="' +
+    hexOf(a.color) +
+    '" /></div>' +
     '<div class="adv-presets">' +
     COLORS.map(
       (c) =>
-        '<button type="button" class="preset" data-color="' + c +
-        '" style="background:' + c + '" aria-label="Use ' + c + '"></button>',
+        '<button type="button" class="preset" data-color="' +
+        c +
+        '" style="background:' +
+        c +
+        '" aria-label="Use ' +
+        c +
+        '"></button>',
     ).join("") +
     "</div>" +
     '<div class="adv-line"><span>Opacity</span>' +
-    '<input type="range" class="adv-op" min="0" max="100" value="' + pct + '" />' +
-    "<output>" + pct + "%</output></div>" +
+    '<input type="range" class="adv-op" min="0" max="100" value="' +
+    pct +
+    '" />' +
+    "<output>" +
+    pct +
+    "%</output></div>" +
     "</div>"
   );
 }
@@ -99,13 +128,17 @@ function renderDatasets() {
   datasetList.innerHTML = "";
 
   if (!datasets.length) {
-    datasetList.innerHTML = '<li class="empty">Select a state to see its layers.</li>';
+    datasetList.innerHTML =
+      '<li class="empty">Select a state to see its layers.</li>';
     return;
   }
 
-  const shown = datasets.filter((d) => category === "all" || categoryOf(d) === category);
+  const shown = datasets.filter(
+    (d) => category === "all" || categoryOf(d) === category,
+  );
   if (!shown.length) {
-    datasetList.innerHTML = '<li class="empty">No layers in this category.</li>';
+    datasetList.innerHTML =
+      '<li class="empty">No layers in this category.</li>';
     return;
   }
 
@@ -113,22 +146,31 @@ function renderDatasets() {
     const ok = isDrawable(d);
     const on = !!active[d.id];
     const li = document.createElement("li");
-    li.className = "ds" + (ok ? "" : " disabled") + (loadingIds.has(d.id) ? " loading" : "");
+    li.className =
+      "ds" + (ok ? "" : " disabled") + (loadingIds.has(d.id) ? " loading" : "");
     if (!ok) li.title = d.type + " - not drawable";
     li.innerHTML =
       '<div class="ds-row">' +
       '<label class="switch"><input type="checkbox"' +
       (on ? " checked" : "") +
       (ok ? "" : " disabled") +
-      ' aria-label="' + esc(d.name_long) + '" />' +
+      ' aria-label="' +
+      esc(d.name_long) +
+      '" />' +
       '<span class="track"></span></label>' +
-      '<span class="ds-name">' + esc(d.name_long) + "</span>" +
+      '<span class="ds-name">' +
+      esc(d.name_long) +
+      "</span>" +
       '<button type="button" class="ds-menu" title="More options" aria-label="More options" aria-haspopup="menu">&#8942;</button>' +
       "</div>" +
       (on && advOpen.has(d.id) ? advHtml(d.id) : "");
 
-    li.querySelector("input").addEventListener("change", (e) => toggleLayer(d, e.target));
-    li.querySelector(".ds-menu").addEventListener("click", (e) => toggleMenu(d, e.currentTarget));
+    li.querySelector("input").addEventListener("change", (e) =>
+      toggleLayer(d, e.target),
+    );
+    li.querySelector(".ds-menu").addEventListener("click", (e) =>
+      toggleMenu(d, e.currentTarget),
+    );
 
     const adv = li.querySelector(".adv");
     if (adv) {
@@ -160,7 +202,8 @@ function renderResults() {
 
   const ids = Object.keys(active);
   if (!ids.length) {
-    resultsBody.innerHTML = '<div class="empty">No layers on the map yet.</div>';
+    resultsBody.innerHTML =
+      '<div class="empty">No layers on the map yet.</div>';
     return;
   }
 
@@ -178,11 +221,18 @@ function renderResults() {
     if (tab === "data") {
       row.innerHTML =
         '<input type="color" class="lg-color" title="Change color" aria-label="Change color of ' +
-        esc(a.name) + '" value="' + hexOf(a.color) + '" />' +
-        '<span class="t">' + esc(a.name) + "</span>" +
+        esc(a.name) +
+        '" value="' +
+        hexOf(a.color) +
+        '" />' +
+        '<span class="t">' +
+        esc(a.name) +
+        "</span>" +
         '<button type="button" title="Remove" aria-label="Remove layer">&times;</button>';
       const color = row.querySelector(".lg-color");
-      color.addEventListener("input", (e) => setLayerStyle(id, { color: e.target.value }));
+      color.addEventListener("input", (e) =>
+        setLayerStyle(id, { color: e.target.value }),
+      );
       color.addEventListener("change", () => renderDatasets()); // keep advanced controls in sync
       row.querySelector("button").onclick = () => {
         removeDataLayer(id);
@@ -191,8 +241,12 @@ function renderResults() {
       };
     } else {
       row.innerHTML =
-        '<div class="sw" style="background:' + esc(a.color) + '"></div>' +
-        '<span class="t">' + esc(a.name) + "</span>" +
+        '<div class="sw" style="background:' +
+        esc(a.color) +
+        '"></div>' +
+        '<span class="t">' +
+        esc(a.name) +
+        "</span>" +
         '<span class="count">' +
         (a.shown === a.total ? a.shown : a.shown + " of " + a.total) +
         " features</span>";
@@ -204,6 +258,7 @@ function renderResults() {
 function refresh() {
   renderDatasets();
   renderResults();
+  syncUrl(); // keeps ?layers=... up to date
 }
 
 // ---- Three-dot menu --------------------------------------------------------
@@ -251,9 +306,15 @@ function toggleMenu(d, btn) {
   menuEl.innerHTML = items
     .map(
       (it, i) =>
-        '<button type="button" role="menuitem" data-i="' + i + '"' +
-        (it.needsOn && !on ? ' disabled title="Switch the layer on first"' : "") +
-        ">" + esc(it.label) + "</button>",
+        '<button type="button" role="menuitem" data-i="' +
+        i +
+        '"' +
+        (it.needsOn && !on
+          ? ' disabled title="Switch the layer on first"'
+          : "") +
+        ">" +
+        esc(it.label) +
+        "</button>",
     )
     .join("");
   menuEl.querySelectorAll("button").forEach((b) =>
@@ -267,12 +328,20 @@ function toggleMenu(d, btn) {
   menuDatasetId = d.id;
   menuEl.hidden = false;
   const r = btn.getBoundingClientRect();
-  menuEl.style.top = Math.max(8, Math.min(r.bottom, window.innerHeight - menuEl.offsetHeight - 8)) + "px";
+  menuEl.style.top =
+    Math.max(
+      8,
+      Math.min(r.bottom, window.innerHeight - menuEl.offsetHeight - 8),
+    ) + "px";
   menuEl.style.left = Math.max(8, r.right - menuEl.offsetWidth) + "px";
 }
 
 document.addEventListener("click", (e) => {
-  if (!menuEl.hidden && !menuEl.contains(e.target) && !e.target.closest(".ds-menu")) {
+  if (
+    !menuEl.hidden &&
+    !menuEl.contains(e.target) &&
+    !e.target.closest(".ds-menu")
+  ) {
     closeMenu();
   }
 });
@@ -294,8 +363,11 @@ function infoHtml(i, d, note) {
   const link = (label, u) => {
     const s = safeUrl(u);
     return s
-      ? '<div class="info-link"><a href="' + esc(s) + '" target="_blank" rel="noopener noreferrer">' +
-          esc(label) + " &#8600;</a></div>"
+      ? '<div class="info-link"><a href="' +
+          esc(s) +
+          '" target="_blank" rel="noopener noreferrer">' +
+          esc(label) +
+          " &#8600;</a></div>"
       : "";
   };
 
@@ -315,8 +387,11 @@ function infoHtml(i, d, note) {
   return (
     (note ? '<p class="muted info-note">' + esc(note) + "</p>" : "") +
     '<div class="info-cols"><div>' +
-    (left || '<p class="muted">No description is available for this dataset.</p>') +
-    "</div><div>" + right + "</div></div>"
+    (left ||
+      '<p class="muted">No description is available for this dataset.</p>') +
+    "</div><div>" +
+    right +
+    "</div></div>"
   );
 }
 
@@ -334,7 +409,11 @@ async function openInfo(d) {
   } catch (e) {
     console.error(e);
     if (token !== infoToken) return;
-    html = infoHtml(normalizeInfo(null), d, "Could not load the full description: " + e.message);
+    html = infoHtml(
+      normalizeInfo(null),
+      d,
+      "Could not load the full description: " + e.message,
+    );
   }
   infoBody.innerHTML = html;
 }
@@ -364,9 +443,13 @@ function openValues(d) {
   valuesDialog.showModal();
 }
 
-valuesColor.addEventListener("input", () => (valuesHex.value = valuesColor.value));
+valuesColor.addEventListener(
+  "input",
+  () => (valuesHex.value = valuesColor.value),
+);
 valuesHex.addEventListener("input", () => {
-  if (/^#[0-9a-f]{6}$/i.test(valuesHex.value)) valuesColor.value = valuesHex.value;
+  if (/^#[0-9a-f]{6}$/i.test(valuesHex.value))
+    valuesColor.value = valuesHex.value;
 });
 $("values-cancel").addEventListener("click", () => valuesDialog.close());
 $("values-apply").addEventListener("click", () => {
@@ -619,7 +702,9 @@ document.querySelectorAll(".rail-item").forEach((btn) => {
 document.querySelectorAll(".tab").forEach((btn) => {
   btn.addEventListener("click", () => {
     tab = btn.dataset.tab;
-    document.querySelectorAll(".tab").forEach((b) => b.classList.toggle("active", b === btn));
+    document
+      .querySelectorAll(".tab")
+      .forEach((b) => b.classList.toggle("active", b === btn));
     // On phones the results panel is only shown on the Analysis tab.
     document.body.classList.toggle("show-results", tab === "analysis");
     renderResults();
@@ -644,5 +729,70 @@ $("dialog-close").addEventListener("click", () => dialog.close());
 
 window.addEventListener("resize", previewResize);
 
+// ---- 7. URL state: update the address bar and restore from it --------------
+// Runs after the change handlers above, so the dropdown values are up to date.
+[countrySel, stateSel, districtSel].forEach((s) =>
+  s.addEventListener("change", syncUrl),
+);
+
+// Wait until a condition is true (or give up after `ms`).
+const waitFor = (test, ms = 20000) =>
+  new Promise((resolve) => {
+    const t0 = Date.now();
+    (function tick() {
+      if (test() || Date.now() - t0 > ms) return resolve(test());
+      setTimeout(tick, 100);
+    })();
+  });
+
+const hasOption = (sel, v) => [...sel.options].some((o) => o.value === v);
+
+async function restoreFromUrl() {
+  const cId = initialParams.get("country");
+  const sId = initialParams.get("state");
+  const dName = initialParams.get("district");
+  const layerIds = (initialParams.get("layers") || "")
+    .split(",")
+    .filter(Boolean);
+
+  try {
+    if (!cId || !hasOption(countrySel, cId)) return;
+    countrySel.value = cId;
+    countrySel.dispatchEvent(new Event("change"));
+
+    if (sId) {
+      if (!(await waitFor(() => hasOption(stateSel, sId)))) return;
+      stateSel.value = sId;
+      stateSel.dispatchEvent(new Event("change"));
+    }
+
+    // District first, so the layers are clipped to it when they load.
+    if (dName && (await waitFor(() => hasOption(districtSel, dName)))) {
+      districtSel.value = dName;
+      districtSel.dispatchEvent(new Event("change"));
+    }
+
+    if (layerIds.length) {
+      await waitFor(() => datasets.length > 0);
+      // toggleLayer only needs .checked and .closest(".ds").classList.add
+      const fake = {
+        checked: true,
+        closest: () => ({ classList: { add() {} } }),
+      };
+      await Promise.all(
+        layerIds.map((id) => {
+          const d = datasets.find((x) => String(x.id) === id);
+          return d && isDrawable(d) && !active[d.id]
+            ? toggleLayer(d, { ...fake })
+            : null;
+        }),
+      );
+    }
+  } finally {
+    restoring = false;
+    syncUrl();
+  }
+}
+
 refresh();
-loadCountries();
+loadCountries().then(restoreFromUrl);
