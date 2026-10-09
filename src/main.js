@@ -735,6 +735,57 @@ window.addEventListener("resize", previewResize);
   s.addEventListener("change", syncUrl),
 );
 
+// ---- Crops (mock datasets) -------------------------------------------------
+const cropSel = $("crop");
+if (cropSel && typeof CROPS !== "undefined") {
+  fill(
+    cropSel,
+    CROPS.map((c) => ({ value: c.id, label: c.label })),
+    "Select a crop",
+  );
+
+  cropSel.addEventListener("change", () => {
+    const currentCropId = cropSel.value;
+    // Hide all crops first
+    CROPS.forEach((c) => {
+      const checkbox = document.querySelector(`input[aria-label="${esc(c.dataset)}"]`);
+      if (checkbox && checkbox.checked) {
+        checkbox.checked = false;
+        const cropDataset = datasets.find((d) => d.name_long === c.dataset);
+        if (cropDataset) toggleLayer(cropDataset, checkbox);
+      }
+    });
+
+    if (currentCropId) {
+      const selectedCrop = CROPS.find((c) => c.id === currentCropId);
+      let cropDataset = datasets.find((d) => d.name_long === selectedCrop.dataset);
+      
+      // MOCK DATASET INJECTION:
+      // Since the API doesn't have the crop data yet, we generate a mock dataset
+      // pointing to our local GeoJSON file so the map actually draws something.
+      if (!cropDataset) {
+        cropDataset = {
+          id: "mock_" + selectedCrop.id,
+          name_long: selectedCrop.label + " Suitability",
+          category: "demand",
+          type: "polygons",
+          source_files: [{ func: "vectors", endpoint: "../data/mock-crop.geojson" }]
+        };
+      }
+
+      // Try to find the actual checkbox if it exists in the UI
+      const checkbox = document.querySelector(`input[aria-label="${esc(cropDataset.name_long)}"]`);
+      if (checkbox) {
+        checkbox.checked = true;
+        toggleLayer(cropDataset, checkbox);
+      } else {
+        // If not in UI, fake the checkbox so toggleLayer still works
+        toggleLayer(cropDataset, { checked: true, closest: () => ({ classList: { add: () => {} } }) });
+      }
+    }
+  });
+}
+
 // Wait until a condition is true (or give up after `ms`).
 const waitFor = (test, ms = 20000) =>
   new Promise((resolve) => {
