@@ -126,7 +126,7 @@ Stay in your own files where possible so merge conflicts stay rare.
 Do **not** open `index.html` by double-clicking. Pages from `file://` have no origin, so map tiles and data requests fail. Use a local server:
 
 - **VS Code Live Server** (easiest): install the extension "Live Server", right-click `index.html`, **Open with Live Server**.
-- **Node:** `npx http-server -p 8000`, then open `http://localhost:8000/index.html`.
+- **Node:** ``, then open `http://localhost:8000/index.html`.
 - Python is not installed on every machine. If you have it: `python -m http.server 8000` (or `py -m http.server 8000` on Windows).
 
 The address bar must begin with `http://`.
@@ -134,7 +134,7 @@ The address bar must begin with `http://`.
 ### Known problem: CORS on the layer files
 
 Layer files on `energyaccess-storage.s3.amazonaws.com` cannot be read by our page (`No 'Access-Control-Allow-Origin' header`). This is the server's setting, not our code. Options: ask the organizers to enable CORS, show the layers through EAE's own tool in an iframe, or download the few files we need (check size, licence and attribution first).
-
+npx http-server -p 8000
 ---
 
 ## 8. Open questions for the organizers

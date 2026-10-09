@@ -1,0 +1,24 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>EAE iframe spike</title>
+<style>
+  body { margin: 0; font: 14px sans-serif; }
+  #bar { padding: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
+  iframe { width: 100%; height: calc(100vh - 56px); border: 0; }
+</style>
+<div id="bar">
+  <input id="geo" size="40" placeholder="geography id (from the EAE URL ?id=...)">
+  <input id="inputs" size="30" placeholder="dataset names, comma separated">
+  <button id="go">Load</button>
+</div>
+<iframe id="f" title="Energy Access Explorer"></iframe>
+<script>
+  const updateFrame = () => {
+    const p = new URLSearchParams({ id: geo.value.trim() });
+    if (inputs.value.trim()) p.set("inputs", inputs.value.trim());
+    f.src = "https://www.energyaccessexplorer.org/tool/s?" + p;
+  };
+  go.onclick = updateFrame;
+  // Automatically load when the page is opened
+  window.onload = updateFrame;
+</script>
