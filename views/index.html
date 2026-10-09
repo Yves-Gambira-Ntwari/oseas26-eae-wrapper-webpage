@@ -40,6 +40,9 @@
                 <label>District
                   <select id="district" disabled><option value="">Select a state first</option></select>
                 </label>
+                <label>Crop
+                  <select id="crop"><option value="">Select a crop</option></select>
+                </label>
                 <div id="info" role="status" aria-live="polite"></div>
               </section>
 
@@ -125,10 +128,10 @@
 
     <!-- Order matters: library -> config -> data -> embed -> preview -> main -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="../src/config.js"></script>
-    <script src="../src/data.js"></script>
-    <script src="../src/embed.js"></script>
-    <script src="../src/preview.js"></script>
-    <script src="../src/main.js"></script>
+    <script src="../src/config.js?v=4"></script>
+    <script src="../src/data.js?v=4"></script>
+    <script src="../src/embed.js?v=4"></script>
+    <script src="../src/preview.js?v=4"></script>
+    <script src="../src/main.js?v=4"></script>
   </body>
 </html>
