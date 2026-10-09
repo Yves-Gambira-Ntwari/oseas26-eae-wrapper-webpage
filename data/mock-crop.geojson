@@ -1,0 +1,40 @@
+{
+  "type": "FeatureCollection",
+  "features": [
+    {
+      "type": "Feature",
+      "properties": { "suitability": "High", "name": "India High Yield Zone" },
+      "geometry": { "type": "Polygon", "coordinates": [[[80.0, 20.0], [96.0, 20.0], [96.0, 28.0], [80.0, 28.0], [80.0, 20.0]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "suitability": "Medium", "name": "India Medium Yield Zone" },
+      "geometry": { "type": "Polygon", "coordinates": [[[84.0, 22.0], [94.0, 22.0], [94.0, 26.0], [84.0, 26.0], [84.0, 22.0]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "suitability": "High", "name": "Kenya High Yield Zone" },
+      "geometry": { "type": "Polygon", "coordinates": [[[34.0, -1.0], [40.0, -1.0], [40.0, 3.0], [34.0, 3.0], [34.0, -1.0]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "suitability": "Medium", "name": "Kenya Medium Yield Zone" },
+      "geometry": { "type": "Polygon", "coordinates": [[[35.0, 0.0], [38.0, 0.0], [38.0, 2.0], [35.0, 2.0], [35.0, 0.0]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "suitability": "High", "name": "Nigeria High Yield Zone" },
+      "geometry": { "type": "Polygon", "coordinates": [[[3.0, 4.0], [14.0, 4.0], [14.0, 13.0], [3.0, 13.0], [3.0, 4.0]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "suitability": "High", "name": "Zambia High Yield Zone" },
+      "geometry": { "type": "Polygon", "coordinates": [[[22.0, -18.0], [33.0, -18.0], [33.0, -8.0], [22.0, -8.0], [22.0, -18.0]]] }
+    },
+    {
+      "type": "Feature",
+      "properties": { "suitability": "High", "name": "Nepal High Yield Zone" },
+      "geometry": { "type": "Polygon", "coordinates": [[[80.0, 26.0], [88.0, 26.0], [88.0, 30.0], [80.0, 30.0], [80.0, 26.0]]] }
+    }
+  ]
+}

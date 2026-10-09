@@ -72,3 +72,10 @@ const TEXTS = {
   disclaimer:
     "This page is an independent wrapper around public Energy Access Explorer data. Boundaries and datasets are shown as provided by the source and may be incomplete or out of date.",
 };
+
+// Mock crop analyses configurations
+const CROPS = [
+  { id: "maize", label: "Maize", dataset: "maize_suitability" },
+  { id: "cassava", label: "Cassava", dataset: "cassava_suitability" },
+  { id: "rice", label: "Rice", dataset: "rice_suitability" }
+];
