@@ -1,74 +1,123 @@
-// config.js - settings you may want to change. No logic here.
+// config.js - settings you may want to change. No page logic here.
 
 const API = "https://api.energyaccessexplorer.org";
 
-// Dataset types the map knows how to draw.
-const DRAWABLE = ["points", "lines", "polygons", "polygons-boundaries"];
+// Live EAE map. Geography is ?id=; datasets are ?inputs=name1,name2;
+// saved views are ?snapshot=<id>. ?embed=1 is ignored today, reserved for a
+// future EAE patch (collapsed panels / postMessage).
+const EAE_ORIGIN = "https://www.energyaccessexplorer.org";
+const EAE_APP_PATH = "/tool/a/";
 
-// Colors given to layers, in order. They are also the quick-pick swatches in
-// the "advanced controls" of a layer.
-const COLORS = [
-  "#e6194b",
-  "#3cb44b",
-  "#4363d8",
-  "#f58231",
-  "#911eb4",
-  "#008080",
-  "#f032e6",
-  "#9a6324",
-  "#800000",
-  "#000075",
+// First load: India → Nagaland (the government partner named in the brief).
+const DEFAULT_COUNTRY_ID = "7d10f6b0-32b1-4803-b202-4c4325cc4d83";
+const DEFAULT_STATE_ID = "61cc6dc7-2159-405f-a0df-6faa8c583923";
+
+// Minimum inner width so EAE does not hit its "desktop required" gate (~768px).
+const EAE_MIN_WIDTH = 1280;
+const EAE_MIN_HEIGHT = 800;
+
+// Names that look like crop / suitability layers when we scan the API.
+const CROP_NAME_RE =
+  /crop|agri|suitab|rice|maize|wheat|sorghum|cassava|onion|potato|tomato|sugarcane|plantation|cropland|lulc/i;
+
+// Mock crop names for geographies that do not yet have organiser-provided
+// suitability analyses. Each entry maps to real EAE dataset `name`s so the
+// iframe still lights something up. Replace `inputs` / `snapshot` when the
+// mock analyses are published — no other code change needed.
+const MOCK_CROPS = [
+  {
+    id: "rice",
+    label: "Rice",
+    inputs: ["lulc-mutant", "district-boundaries"],
+    mock: true,
+  },
+  {
+    id: "maize",
+    label: "Maize",
+    inputs: ["lulc-mutant", "district-boundaries"],
+    mock: true,
+  },
+  {
+    id: "soybean",
+    label: "Soybean",
+    inputs: ["lulc-mutant"],
+    mock: true,
+  },
+  {
+    id: "pineapple",
+    label: "Pineapple",
+    inputs: ["lulc-mutant"],
+    mock: true,
+  },
 ];
 
-// Fill opacity of a layer (0-1) before the user changes it.
-const DEFAULT_OPACITY = 0.25;
-
-// World view: the country is not known until the user picks one.
-const MAP_DEFAULT = { center: [20, 0], zoom: 2 };
-
-const TILE_URL = "https://tile.openstreetmap.org/{z}/{x}/{y}.png";
-const TILE_ATTRIBUTION = "&copy; OpenStreetMap contributors";
-
-// Max attributes shown in a click popup / in the hover tooltip.
-const POPUP_MAX_ROWS = 12;
-const TOOLTIP_MAX_ROWS = 6;
-
-// Left rail. The API does not give us a category here, so each dataset is put
-// in the first group whose pattern matches its name. No match = "other".
-// "all" shows everything. Edit the patterns to fit your data.
-const CATEGORIES = [
-  { id: "census", label: "Census", match: /census|population|household|roof|radio|lighting|cooking|literacy|ownership/i },
-  { id: "demand", label: "Demand", match: /demand|crop|agri|health|school|education|market|business|income|poverty|night/i },
-  { id: "supply", label: "Supply", match: /supply|solar|wind|hydro|geothermal|biomass|power|grid|transmission|substation|line|road|mini|ghi|elevation|slope/i },
-  { id: "other", label: "Other", match: null },
-  { id: "all", label: "All", match: null },
-];
-const DEFAULT_CATEGORY = "all";
-
-// "Dataset info" window. The API field names are not guaranteed, so each
-// section lists the names to look for (case and punctuation are ignored, first
-// match wins). They are searched in the dataset row and in its "metadata"
-// object. If a section stays empty, add the real field name here.
-const INFO_FIELDS = {
-  description: ["description_long", "description", "about"],
-  why: ["why", "why_used", "purpose", "usage"],
-  citation: ["citation", "suggested_citation", "cite"],
-  cautions: ["cautions", "caution", "warning", "limitations"],
-  source: ["sources", "source", "provider"],
-  license: ["license", "licence"],
-  date: ["date_of_content", "content_date", "date", "year"],
-  download: ["download", "download_url", "download_from_source", "source_url"],
-  learn: ["learn_more", "learn_more_url", "more_info", "url", "link"],
+// Optional overrides per geography id. Use `snapshot` instead of `inputs`
+// when mentors share saved-analysis ids.
+const CROPS_BY_GEOGRAPHY = {
+  // Mizoram — real crop layers already in EAE
+  "39e4dcfd-7a0f-4534-9d90-e3f0dc4344c9": [
+    {
+      id: "sugarcane-area",
+      label: "Sugarcane (area)",
+      inputs: ["crop-sugarcane-area-ha"],
+    },
+    {
+      id: "sugarcane-prod",
+      label: "Sugarcane (production)",
+      inputs: ["crop-sugarcane-prod-mt"],
+    },
+  ],
+  // Kenya — irrigated crop energy-demand rasters
+  "562ffd81-d326-41e4-9ba0-2dedb21130b2": [
+    {
+      id: "maize",
+      label: "Maize (irrigated)",
+      inputs: ["energy-demand-for-irrigated-maize-crops"],
+    },
+    {
+      id: "wheat",
+      label: "Wheat (irrigated)",
+      inputs: ["energy-demand-for-irrigated-wheat-crops"],
+    },
+    {
+      id: "potato",
+      label: "Potato (irrigated)",
+      inputs: ["energy-demand-for-irrigated-potato-crops"],
+    },
+    {
+      id: "tomato",
+      label: "Tomato (irrigated)",
+      inputs: ["energy-demand-for-irrigated-tomato-crops"],
+    },
+    {
+      id: "onion",
+      label: "Onion (irrigated)",
+      inputs: ["energy-demand-for-irrigated-onion-crops"],
+    },
+    {
+      id: "sorghum",
+      label: "Sorghum (irrigated)",
+      inputs: ["energy-demand-for-irrigated-sorghum-crops"],
+    },
+    {
+      id: "cassava",
+      label: "Cassava (irrigated)",
+      inputs: ["energy-demand-for-irrigated-cassava-crops"],
+    },
+  ],
+  // Nagaland — mocks until crop-suitability analyses are preloaded
+  "61cc6dc7-2159-405f-a0df-6faa8c583923": MOCK_CROPS,
 };
 
-// Large GeoJSON files often fail with CORS errors. When the page runs on
-// localhost, try server.py's /proxy first, then fall back to a direct request.
-const USE_PROXY = ["localhost", "127.0.0.1"].includes(location.hostname);
-const PROXY_PATH = "/proxy?url=";
-
-// Texts for the Help / About / Disclaimer dialogs.
 const TEXTS = {
-  help: "Pick a country, then a state and (optionally) a district. Switch on any layer in the left panel to draw it. Hover the map to see a place's details, click it for everything we know. In the Legend, click a color dot to recolor a layer. Use the three dots next to a layer for its info, advanced controls and more.",
+  help:
+    "Choose a country and state, then a crop. The Energy Access Explorer map " +
+    "reloads on that area with the matching layers switched on. You can still " +
+    "pan, zoom and use EAE’s own sliders. Dropdowns always win: changing them " +
+    "resets the embed to your selection.",
   disclaimer:
-    "This page is an independent wrapper around public Energy Access Explorer data. Boundaries and datasets are shown as provided by the source and may be incomplete or out of date.",
+    "This page wraps public Energy Access Explorer data. It is an independent " +
+    "OSEAS hackathon wrapper, not an official WRI product. Boundaries and " +
+    "layers are shown as published and may be incomplete. Mock crop names are " +
+    "placeholders until organisers provide crop-suitability analyses.",
 };

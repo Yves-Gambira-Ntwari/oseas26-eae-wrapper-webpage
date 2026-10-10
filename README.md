@@ -92,3 +92,53 @@ directories contain:
   - [Energy Access Explorer](https://www.energyaccessexplorer.org)
   - [EAE GitHub](https://github.com/energyaccessexplorer)
   - [EAE Technical Note](https://www.wri.org/research/energy-access-explorer-data-and-methods?ap3c=IGaj6AgspJqgeKwBAGaj6AgmzCZ5Iv70Fr7H6ahniwtFr1FOgg)
+
+## How to run this wrapper
+
+Do not open `views/index.html` as a `file://` page. Serve the repository root
+over HTTP:
+
+```bash
+python Server.py
+```
+
+Then open <http://localhost:8000/views/index.html>.
+
+Any static server works (`npx serve .`, VS Code Live Server). The page loads
+countries and states from the public EAE API and embeds the live tool at
+`https://www.energyaccessexplorer.org/tool/a/?id=<geography>&inputs=<datasets>`.
+
+### Configure regions and crops
+
+Edit `src/config.js`:
+
+- `EAE_ORIGIN` / `EAE_APP_PATH` — which EAE instance to embed
+- `DEFAULT_COUNTRY_ID` / `DEFAULT_STATE_ID` — first-load geography (India / Nagaland)
+- `CROPS_BY_GEOGRAPHY` — crop dropdown entries per geography id
+- each crop: `{ id, label, inputs: ["dataset-name"], snapshot?: "id", mock?: true }`
+
+When organisers publish mock crop-suitability analyses, replace `inputs` or set
+`snapshot` to the saved EAE view. No other files need to change.
+
+Shareable wrapper URLs look like:
+
+`/views/index.html?country=<id>&state=<id>&district=<id>&crop=<id>`
+
+Changing a dropdown reloads the iframe so the selection always overrides
+whatever the visitor last did inside EAE.
+
+### Known limitations
+
+- EAE does not currently collapse its own side panels or accept `postMessage`.
+  The wrapper maximises the map area around the iframe and sends `?embed=1` so
+  a future EAE patch can pick that up. Until then, EAE’s panels stay as the
+  live tool draws them.
+- EAE refuses to start below about 768 px. On phones the wrapper scales a
+  desktop-sized iframe down so the map still appears.
+- Nagaland does not yet have crop-suitability rasters in the public API. The
+  crop list there is marked **(mock)** and lights Land Use / Land Cover until
+  the organisers share the mock analyses.
+- District zoom only works when the district exists as an EAE geography
+  (`/geographies` child). Many Indian states, including Nagaland, expose
+  districts as a layer inside EAE rather than as a separate `id`.
+- Attribution: <https://www.energyaccessexplorer.org/attribution>
