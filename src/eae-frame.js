@@ -15,6 +15,7 @@ function eaeFrameInit(iframe, readyCallback) {
 
 function onEaeMessage(event) {
   if (event.origin !== EAE_ORIGIN) return;
+  if (!frameEl || event.source !== frameEl.contentWindow) return;
   const data = event.data;
   if (!data || typeof data !== "object") return;
   if (data.type === "eae:ready") {

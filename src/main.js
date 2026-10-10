@@ -53,6 +53,7 @@ let datasets = [];
 let selToken = 0;
 let loadTimer = 0;
 let restoring = false;
+let retryAction = null;
 
 const initialParams = new URLSearchParams(location.search);
 
@@ -88,15 +89,17 @@ function syncUrl() {
   history.replaceState(null, "", location.pathname + (q ? "?" + q : ""));
 }
 
-function showOverlay(text, retry) {
+function showOverlay(text, retry, onRetry) {
   overlay.hidden = false;
   overlayText.textContent = text;
   overlayRetry.hidden = !retry;
+  retryAction = onRetry || null;
 }
 
 function hideOverlay() {
   overlay.hidden = true;
   overlayRetry.hidden = true;
+  retryAction = null;
   if (loadTimer) {
     clearTimeout(loadTimer);
     loadTimer = 0;
@@ -104,6 +107,10 @@ function hideOverlay() {
 }
 
 function applyEmbed() {
+  if (loadTimer) {
+    clearTimeout(loadTimer);
+    loadTimer = 0;
+  }
   const geo = geographyId();
   if (!geo) {
     showOverlay("Select a country or state to load the map.", false);
@@ -124,7 +131,7 @@ function applyEmbed() {
 
 iframe.addEventListener("load", () => {
   const src = iframe.getAttribute("src") || "";
-  if (!src || src === "about:blank") return;
+  if (!src || src === "about:blank" || src !== iframe.dataset.src) return;
   hideOverlay();
   fitEaeFrame(frameHost);
   const crop = selectedCrop();
@@ -191,7 +198,11 @@ async function loadCountries() {
   } catch (e) {
     console.error(e);
     fill(countrySel, [], "Could not load countries");
-    showOverlay("Could not load countries from the EAE API: " + e.message, true);
+    showOverlay(
+      "Could not load countries from the EAE API: " + e.message,
+      true,
+      () => loadCountries().then(restoreFromUrl),
+    );
   }
 }
 
@@ -296,7 +307,12 @@ openTab.addEventListener("click", (e) => {
   openEaeTab(currentSel());
 });
 
-overlayRetry.addEventListener("click", () => applyEmbed());
+overlayRetry.addEventListener("click", () => {
+  const retry = retryAction;
+  retryAction = null;
+  if (retry) retry();
+  else applyEmbed();
+});
 
 $("help-btn").addEventListener("click", () => {
   $("dialog-title").textContent = "How to use this map";
