@@ -26,13 +26,12 @@ const EaeController = (function () {
 
     window.addEventListener("message", handleMessage);
 
-    // If iframe already loaded its document, hide loader
     frame.addEventListener("load", () => {
-      // Small buffer to allow mapbox canvas to paint
-      setTimeout(() => {
-        hideLoader();
-      }, 1500);
+      setTimeout(hideLoader, 1000);
     });
+
+    // Fallback: If iframe painted before main scripts attached, dismiss loader
+    setTimeout(hideLoader, 2500);
   }
 
   function hideLoader() {
@@ -256,3 +255,4 @@ function clearAllLayers() {
   colorIdx = 0;
   EaeController.send({ inputs: "" });
 }
+

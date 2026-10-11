@@ -82,7 +82,7 @@
               title="Energy Access Explorer"
               src="http://localhost:3000/tool/a/?id=61cc6dc7-2159-405f-a0df-6faa8c583923&embed=1"
               allow="geolocation"
-              loading="lazy">
+              onload="if (window.EaeController) setTimeout(() => EaeController.hideLoader(), 1000);">
             </iframe>
           </div>
         </main>
@@ -155,10 +155,11 @@
 
     <!-- Order matters: library -> config -> data -> embed -> preview -> main -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="../src/config.js?v=5"></script>
-    <script src="../src/data.js?v=5"></script>
-    <script src="../src/embed.js?v=5"></script>
-    <script src="../src/preview.js?v=5"></script>
-    <script src="../src/main.js?v=5"></script>
+    <script src="../src/config.js?v=6"></script>
+    <script src="../src/data.js?v=6"></script>
+    <script src="../src/embed.js?v=6"></script>
+    <script src="../src/preview.js?v=6"></script>
+    <script src="../src/main.js?v=6"></script>
   </body>
 </html>
+
