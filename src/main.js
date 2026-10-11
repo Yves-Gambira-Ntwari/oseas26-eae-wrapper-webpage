@@ -1,4 +1,4 @@
-﻿// main.js - connects the dropdowns, rail, toggles, legend and dialogs to the
+// main.js - connects the dropdowns, rail, toggles, legend and dialogs to the
 // data and the maps.
 
 const $ = (id) => document.getElementById(id);
@@ -560,6 +560,10 @@ stateSel.addEventListener("change", () => {
 async function selectGeography(geo, token) {
   fill(districtSel, [], "Loading...");
   datasetList.innerHTML = '<li class="empty">Loading layers...</li>';
+
+  if (typeof EaeController !== "undefined" && geo && geo.id) {
+    EaeController.load(geo.id);
+  }
 
   let list;
   try {

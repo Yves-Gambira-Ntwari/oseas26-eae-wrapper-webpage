@@ -25,6 +25,8 @@ const EaeController = (function () {
     frame = document.getElementById(frameElementId);
     if (!frame) return;
 
+    currentGeographyId = typeof DEFAULT_GEOGRAPHY_ID !== "undefined" ? DEFAULT_GEOGRAPHY_ID : null;
+
     window.addEventListener("message", handleMessage);
 
     frame.addEventListener("load", () => {
@@ -93,6 +95,11 @@ const EaeController = (function () {
   function load(geographyId, options = {}) {
     if (!frame) frame = document.getElementById("eae-frame");
     if (!frame) return;
+
+    if (currentGeographyId === geographyId && isReady) {
+      if (options.center || options.zoom) setView(options);
+      return;
+    }
 
     currentGeographyId = geographyId;
     isReady = false;
