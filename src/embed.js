@@ -1,6 +1,14 @@
 ﻿// src/embed.js - builds the iframe URL, controls the embedded EAE map,
 // and coordinates postMessage communication and layer state.
 
+const esc = (s) =>
+  String(s || "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+
 // Layer state tracking (shared with main.js)
 let active = {};
 let colorIdx = 0;
@@ -17,6 +25,22 @@ const EaeController = (function () {
     if (!frame) return;
 
     window.addEventListener("message", handleMessage);
+
+    // If iframe already loaded its document, hide loader
+    frame.addEventListener("load", () => {
+      // Small buffer to allow mapbox canvas to paint
+      setTimeout(() => {
+        hideLoader();
+      }, 1500);
+    });
+  }
+
+  function hideLoader() {
+    const loader = document.getElementById("eae-loader");
+    if (loader) loader.style.display = "none";
+
+    const errEl = document.getElementById("eae-error");
+    if (errEl) errEl.style.display = "none";
   }
 
   function handleMessage(event) {
@@ -29,11 +53,7 @@ const EaeController = (function () {
         readyTimeout = null;
       }
 
-      const loader = document.getElementById("eae-loader");
-      if (loader) loader.style.display = "none";
-
-      const errEl = document.getElementById("eae-error");
-      if (errEl) errEl.style.display = "none";
+      hideLoader();
 
       onReadyCallbacks.forEach((cb) => {
         try {
@@ -137,6 +157,7 @@ const EaeController = (function () {
     whenReady,
     setView,
     buildUrl,
+    hideLoader,
     get isReady() {
       return isReady;
     },
@@ -185,13 +206,9 @@ function showDistrict(features) {
   }
 }
 
-function clearDistrictLayer() {
-  // Reset district view if needed
-}
+function clearDistrictLayer() {}
 
-function setClip(features) {
-  // Clip handler
-}
+function setClip(features) {}
 
 function addDataLayer(id, name, gj) {
   const color = COLORS[colorIdx++ % COLORS.length];
@@ -205,7 +222,6 @@ function addDataLayer(id, name, gj) {
     total: (gj && gj.features ? gj.features.length : 1),
   };
 
-  // Sync inputs with iframe if ready
   const activeNames = Object.values(active).map((a) => a.name).join(",");
   EaeController.send({ inputs: activeNames });
 

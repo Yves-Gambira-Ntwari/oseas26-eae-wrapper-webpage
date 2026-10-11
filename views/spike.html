@@ -1,24 +1,38 @@
 <!doctype html>
-<meta charset="utf-8">
-<title>EAE iframe spike</title>
-<style>
-  body { margin: 0; font: 14px sans-serif; }
-  #bar { padding: 8px; display: flex; gap: 8px; flex-wrap: wrap; }
-  iframe { width: 100%; height: calc(100vh - 56px); border: 0; }
-</style>
-<div id="bar">
-  <input id="geo" size="40" placeholder="geography id (from the EAE URL ?id=...)">
-  <input id="inputs" size="30" placeholder="dataset names, comma separated">
-  <button id="go">Load</button>
-</div>
-<iframe id="f" title="Energy Access Explorer"></iframe>
-<script>
-  const updateFrame = () => {
-    const p = new URLSearchParams({ id: geo.value.trim() });
-    if (inputs.value.trim()) p.set("inputs", inputs.value.trim());
-    f.src = "https://www.energyaccessexplorer.org/tool/s?" + p;
-  };
-  go.onclick = updateFrame;
-  // Automatically load when the page is opened
-  window.onload = updateFrame;
-</script>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>EAE Iframe Spike</title>
+  <style>
+    body, html { margin: 0; padding: 0; height: 100%; font-family: sans-serif; }
+    #controls { padding: 10px; background: #eee; border-bottom: 1px solid #ccc; display: flex; gap: 10px; }
+    iframe { width: 100%; height: calc(100% - 50px); border: none; }
+  </style>
+</head>
+<body>
+  <div id="controls">
+    <input type="text" id="geoId" placeholder="Geography ID">
+    <input type="text" id="snapshot" placeholder="Snapshot ID (optional)">
+    <input type="text" id="datasets" placeholder="Dataset names (comma-separated)">
+    <button id="loadBtn">Load</button>
+  </div>
+  <iframe id="eaeFrame" title="Energy Access Explorer"></iframe>
+
+  <script>
+    document.getElementById('loadBtn').addEventListener('click', () => {
+      const geoId = document.getElementById('geoId').value.trim();
+      const snapshot = document.getElementById('snapshot').value.trim();
+      const datasets = document.getElementById('datasets').value.trim();
+      
+      const params = new URLSearchParams();
+      if (geoId) params.append('id', geoId);
+      if (snapshot) params.append('snapshot', snapshot);
+      if (datasets) params.append('inputs', datasets);
+      
+      const url = "https://www.energyaccessexplorer.org/tool/a/?" + params.toString();
+      document.getElementById('eaeFrame').src = url;
+      console.log("Loading URL:", url);
+    });
+  </script>
+</body>
+</html>
