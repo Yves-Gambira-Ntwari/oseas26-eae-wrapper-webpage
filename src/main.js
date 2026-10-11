@@ -1,4 +1,4 @@
-// main.js - connects the dropdowns, rail, toggles, legend and dialogs to the
+﻿// main.js - connects the dropdowns, rail, toggles, legend and dialogs to the
 // data and the maps.
 
 const $ = (id) => document.getElementById(id);
@@ -708,13 +708,13 @@ document.querySelectorAll(".tab").forEach((btn) => {
     // On phones the results panel is only shown on the Analysis tab.
     document.body.classList.toggle("show-results", tab === "analysis");
     renderResults();
-    map.invalidateSize();
+    // map.invalidateSize();
     previewResize();
   });
 });
 
 $("menu-btn").addEventListener("click", () => side.classList.toggle("open"));
-map.on("click", () => side.classList.remove("open"));
+// map.on("click", () => side.classList.remove("open"));
 
 const dialog = $("dialog");
 function openDialog(kind) {
@@ -846,4 +846,10 @@ async function restoreFromUrl() {
 }
 
 refresh();
+if (typeof EaeController !== "undefined") EaeController.init("eae-frame");
 loadCountries().then(restoreFromUrl);
+
+
+
+
+
