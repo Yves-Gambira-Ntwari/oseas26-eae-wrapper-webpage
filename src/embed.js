@@ -1,4 +1,4 @@
-﻿// src/embed.js - builds the iframe URL, controls the embedded EAE map,
+// src/embed.js - builds the iframe URL, controls the embedded EAE map,
 // and coordinates postMessage communication and layer state.
 
 const esc = (s) =>
@@ -18,6 +18,7 @@ const EaeController = (function () {
   let isReady = false;
   let readyTimeout = null;
   let onReadyCallbacks = [];
+  let pendingMessages = [];
   let currentGeographyId = null;
 
   function init(frameElementId) {
@@ -53,6 +54,9 @@ const EaeController = (function () {
       }
 
       hideLoader();
+
+      pendingMessages.forEach((msg) => send(msg));
+      pendingMessages = [];
 
       onReadyCallbacks.forEach((cb) => {
         try {
@@ -92,6 +96,7 @@ const EaeController = (function () {
 
     currentGeographyId = geographyId;
     isReady = false;
+    pendingMessages = [];
 
     const loader = document.getElementById("eae-loader");
     if (loader) loader.style.display = "flex";
@@ -125,6 +130,10 @@ const EaeController = (function () {
   }
 
   function send(data) {
+    if (!isReady) {
+      pendingMessages.push(data);
+      return;
+    }
     if (!frame) frame = document.getElementById("eae-frame");
     if (!frame || !frame.contentWindow) return;
 
@@ -221,8 +230,11 @@ function addDataLayer(id, name, gj) {
     total: (gj && gj.features ? gj.features.length : 1),
   };
 
-  const activeNames = Object.values(active).map((a) => a.name).join(",");
-  EaeController.send({ inputs: activeNames });
+  const activeIdentifiers = [
+    ...Object.keys(active),
+    ...Object.values(active).map((a) => a.name),
+  ];
+  EaeController.send({ inputs: activeIdentifiers });
 
   return { shown: active[id].shown, total: active[id].total };
 }
@@ -230,8 +242,11 @@ function addDataLayer(id, name, gj) {
 function removeDataLayer(id) {
   if (!active[id]) return;
   delete active[id];
-  const activeNames = Object.values(active).map((a) => a.name).join(",");
-  EaeController.send({ inputs: activeNames });
+  const activeIdentifiers = [
+    ...Object.keys(active),
+    ...Object.values(active).map((a) => a.name),
+  ];
+  EaeController.send({ inputs: activeIdentifiers });
 }
 
 function setLayerStyle(id, { color, opacity }) {
@@ -253,6 +268,6 @@ function zoomToLayer(id) {
 function clearAllLayers() {
   active = {};
   colorIdx = 0;
-  EaeController.send({ inputs: "" });
+  EaeController.send({ inputs: [] });
 }
 
