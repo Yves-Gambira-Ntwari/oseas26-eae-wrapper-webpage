@@ -1,9 +1,9 @@
-<!doctype html>
+﻿<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>EAE map wrapper</title>
+    <title>Energy Access Explorer - Nagaland GIS Wrapper</title>
     <link
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
@@ -13,7 +13,7 @@
   <body>
     <div id="app">
       <div id="main">
-        <!-- LEFT: brand header + category rail + dataset panel -->
+        <!-- LEFT: brand header + category rail + dataset/boundary panel -->
         <div id="side">
           <header id="brand">
             <h1 id="title">Select a country</h1>
@@ -31,32 +31,60 @@
 
             <aside id="panel">
               <section id="area" aria-label="Choose an area">
-                <label>Country
-                  <select id="country"><option value="">Loading...</option></select>
+                <label for="country">Country
+                  <select id="country" aria-label="Country selection"><option value="">Loading...</option></select>
                 </label>
-                <label>State
-                  <select id="state" disabled><option value="">Select a country first</option></select>
+                <label for="state">State
+                  <select id="state" disabled aria-label="State selection"><option value="">Select a country first</option></select>
                 </label>
-                <label>District
-                  <select id="district" disabled><option value="">Select a state first</option></select>
+                <label for="district">District
+                  <select id="district" disabled aria-label="District selection"><option value="">Select a state first</option></select>
+                </label>
+                <label for="crop">Crop / Scenario
+                  <select id="crop" aria-label="Crop scenario selection"><option value="">Select a crop / scenario</option></select>
                 </label>
                 <div id="info" role="status" aria-live="polite"></div>
               </section>
 
               <h2 id="panel-title">All</h2>
-              <ul id="datasets"></ul>
+              <ul id="datasets" role="list"></ul>
             </aside>
           </div>
         </div>
 
-        <!-- CENTRE: tabs + map -->
-        <main id="stage">
+        <!-- CENTRE: tabs + iframe map container -->
+        <main id="stage" role="main">
           <button id="menu-btn" type="button" aria-label="Open menu">&#9776;</button>
-          <div id="tabs" role="tablist">
-            <button type="button" class="tab active" role="tab" data-tab="data">DATA</button>
-            <button type="button" class="tab" role="tab" data-tab="analysis">ANALYSIS</button>
+          <div id="stage-bar">
+            <div id="tabs" role="tablist">
+              <button type="button" class="tab active" role="tab" id="tab-data" data-tab="data" aria-selected="true">DATA</button>
+              <button type="button" class="tab" role="tab" id="tab-analysis" data-tab="analysis" aria-selected="false">ANALYSIS</button>
+            </div>
+            <div id="stage-actions">
+              <a id="full-map-link" href="http://localhost:3000/tool/a/?id=61cc6dc7-2159-405f-a0df-6faa8c583923" target="_blank" rel="noopener noreferrer" title="Open full map in standalone tab">
+                Open full map &nearr;
+              </a>
+            </div>
           </div>
-          <div id="map"></div>
+
+          <!-- Embedded EAE Frame with loader and fallback error state -->
+          <div id="map-frame-wrapper">
+            <div id="eae-loader" role="status" aria-live="polite">
+              <div class="spinner"></div>
+              <span>Loading Energy Access Explorer map...</span>
+            </div>
+            <div id="eae-error" style="display: none;" role="alert">
+              <p>Map loading taking longer than expected.</p>
+              <a id="eae-error-link" href="http://localhost:3000/tool/a/?id=61cc6dc7-2159-405f-a0df-6faa8c583923" target="_blank" rel="noopener">Open standalone map</a>
+            </div>
+            <iframe
+              id="eae-frame"
+              title="Energy Access Explorer"
+              src="http://localhost:3000/tool/a/?id=61cc6dc7-2159-405f-a0df-6faa8c583923&embed=1"
+              allow="geolocation"
+              onload="if (window.EaeController) setTimeout(() => EaeController.hideLoader(), 1000);">
+            </iframe>
+          </div>
         </main>
 
         <!-- RIGHT: legend / analysis, preview of the selected place -->
@@ -80,13 +108,15 @@
         </aside>
       </div>
 
-      <footer id="footer"><span>Wrapper for Energy Access Explorer data</span></footer>
+      <footer id="footer">
+        <span>Wrapper for Energy Access Explorer data | Styled for Nagaland GIS</span>
+      </footer>
     </div>
 
-    <!-- Three-dot menu (filled by main.js) -->
+    <!-- Three-dot menu -->
     <div id="ds-menu" role="menu" hidden></div>
 
-    <!-- Dataset info -->
+    <!-- Dataset info dialog -->
     <dialog id="info-dialog" aria-labelledby="info-title">
       <header class="info-head">
         <h3 id="info-title"></h3>
@@ -95,7 +125,7 @@
       <div id="info-body"></div>
     </dialog>
 
-    <!-- Set values manually -->
+    <!-- Set values manually dialog -->
     <dialog id="values-dialog" aria-labelledby="values-title">
       <h3 id="values-title"></h3>
       <div class="values-grid">
@@ -116,7 +146,7 @@
       </div>
     </dialog>
 
-    <!-- Help / Disclaimer -->
+    <!-- Help / Disclaimer dialog -->
     <dialog id="dialog">
       <h3 id="dialog-title"></h3>
       <p id="dialog-text"></p>
@@ -125,10 +155,11 @@
 
     <!-- Order matters: library -> config -> data -> embed -> preview -> main -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="../src/config.js"></script>
-    <script src="../src/data.js"></script>
-    <script src="../src/embed.js"></script>
-    <script src="../src/preview.js"></script>
-    <script src="../src/main.js"></script>
+    <script src="../src/config.js?v=6"></script>
+    <script src="../src/data.js?v=6"></script>
+    <script src="../src/embed.js?v=6"></script>
+    <script src="../src/preview.js?v=6"></script>
+    <script src="../src/main.js?v=6"></script>
   </body>
 </html>
+

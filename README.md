@@ -92,3 +92,54 @@ directories contain:
   - [Energy Access Explorer](https://www.energyaccessexplorer.org)
   - [EAE GitHub](https://github.com/energyaccessexplorer)
   - [EAE Technical Note](https://www.wri.org/research/energy-access-explorer-data-and-methods?ap3c=IGaj6AgspJqgeKwBAGaj6AgmzCZ5Iv70Fr7H6ahniwtFr1FOgg)
+
+---
+
+## Local Setup & How to Run
+
+1. **Start the local server:**
+   ```bash
+   python server.py
+   ```
+   This serves the wrapper page at `http://localhost:8000` and provides a localhost-restricted proxy (`/proxy?url=...`) for CORS-restricted S3 files.
+
+2. **Run your EAE tool build (local or hosted):**
+   - For local development, serve your built `tool` fork on port 3000:
+     ```bash
+     npx http-server serve -p 3000 -c-1
+     ```
+   - Alternatively, pass `?tool_url=<your-hosted-pages-url>/tool/a/` in the browser address bar.
+
+3. **Open the application:**
+   - Open [http://localhost:8000/views/index.html](http://localhost:8000/views/index.html).
+
+---
+
+## Features & Implementation Details
+
+- **Embedded EAE Iframe (`src/embed.js`):** Replaces the Leaflet map in the main stage with an accessible, high-performance EAE iframe.
+- **Collapsed Panels on Load:** Embedded iframe runs in `?embed=1` mode, hiding the top navbar and collapsing left/right panels on initial load.
+- **Boundary Dropdown Hierarchy:** Selecting Country, State (e.g. Nagaland), and District communicates with the embedded map to zoom to the boundary without full page reloads.
+- **Crop / Scenario Selector:** Allows choosing between Scenarios (Scenario 1, Scenario 2, Maize, Rice, Cassava) which passes filter inputs and updates suitability analysis on the map.
+- **Sensible Default Zoom:** Centers on Nagaland state (`lng: 94.5, lat: 26.1`, zoom level 8) by default.
+- **Responsive Phone & Desktop Layout:** Adapts smoothly across phone (360px), tablet (768px), and desktop (1200px) viewports with branding and styling inspired by [nagalandgis.in](https://nagalandgis.in/).
+- **Loading & Fallback Error States:** Features an animated loading spinner while waiting for the iframe's `eae:ready` handshake, and an "Open full map" fallback link.
+
+---
+
+## How to Add a Crop Scenario or Boundary
+
+1. **Adding a Crop / Scenario:**
+   - In `src/config.js`, add a new entry to the `CROPS` array:
+     ```javascript
+     { id: "scenario_new", label: "Scenario Name", dataset: "dataset_key", inputs: "input_categories" }
+     ```
+2. **Adding an Administrative Boundary:**
+   - Boundaries are dynamically queried from the EAE API (`/geographies`). New administrative subdivisions published in the EAE backend automatically populate in the Country -> State -> District dropdowns.
+
+---
+
+## Known Limits
+
+- **Initial Load Time:** Startup of the complex EAE WebGL/Mapbox engine inside an iframe takes 5–15 seconds depending on network connection and device performance.
+- **S3 CORS Restrictions:** Some S3 vector files require the local `server.py` proxy on localhost because upstream S3 buckets do not allow cross-origin requests directly from arbitrary client origins.

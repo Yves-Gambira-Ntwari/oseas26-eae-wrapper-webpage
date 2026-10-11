@@ -22,6 +22,12 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         if parsed.path != "/proxy":
             return super().do_GET()
 
+        # Localhost-only proxy enforcement
+        client_ip = self.client_address[0]
+        if client_ip not in ("127.0.0.1", "::1", "localhost"):
+            self.send_error(403, "Proxy restricted to localhost clients only")
+            return
+
         url = urllib.parse.parse_qs(parsed.query).get("url", [""])[0]
         host = urllib.parse.urlparse(url).netloc
         if host not in ALLOWED_HOSTS:
@@ -51,6 +57,6 @@ class Server(socketserver.ThreadingTCPServer):
 
 
 if __name__ == "__main__":
-    with Server(("", PORT), Handler) as httpd:
+    with Server(("127.0.0.1", PORT), Handler) as httpd:
         print("Open http://localhost:%d  (Ctrl+C to stop)" % PORT)
         httpd.serve_forever()
