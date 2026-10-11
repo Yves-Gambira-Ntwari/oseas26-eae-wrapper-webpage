@@ -1122,7 +1122,7 @@ dialog button.ghost {
   align-items: center;
   justify-content: center;
   gap: 8px;
-  min-width: 124px;               /* stops the bar jumping when the text changes */
+  min-width: 124px;
   padding: 10px 16px;
   margin: 0;
   border: 1px solid var(--green);
