@@ -20,12 +20,13 @@ const EaeController = (function () {
   let onReadyCallbacks = [];
   let pendingMessages = [];
   let currentGeographyId = null;
+  let currentSnapshot = null;
+  let divisionsPayload = [];
+  let lastView = null; // { zoom, center: { lng, lat } }
 
   function init(frameElementId) {
     frame = document.getElementById(frameElementId);
     if (!frame) return;
-
-    currentGeographyId = typeof DEFAULT_GEOGRAPHY_ID !== "undefined" ? DEFAULT_GEOGRAPHY_ID : null;
 
     window.addEventListener("message", handleMessage);
 
@@ -46,6 +47,8 @@ const EaeController = (function () {
   }
 
   function handleMessage(event) {
+    if (typeof EAE_ORIGIN !== "undefined" && event.origin !== EAE_ORIGIN) return;
+    if (frame && event.source !== frame.contentWindow) return;
     if (!event.data || typeof event.data !== "object") return;
 
     if (event.data.type === "eae:ready") {
@@ -56,6 +59,13 @@ const EaeController = (function () {
       }
 
       hideLoader();
+
+      if (Array.isArray(event.data.divisions)) {
+        divisionsPayload = event.data.divisions;
+        if (typeof window.onDivisionsLoaded === "function") {
+          window.onDivisionsLoaded(divisionsPayload);
+        }
+      }
 
       pendingMessages.forEach((msg) => send(msg));
       pendingMessages = [];
@@ -68,6 +78,14 @@ const EaeController = (function () {
         }
       });
       onReadyCallbacks = [];
+    } else if (event.data.type === "eae:view") {
+      lastView = {
+        zoom: event.data.zoom,
+        center: event.data.center,
+      };
+      if (typeof window.onEaeViewChanged === "function") {
+        window.onEaeViewChanged(lastView);
+      }
     }
   }
 
@@ -86,7 +104,7 @@ const EaeController = (function () {
     if (options.divtier !== undefined) params.set("divtier", String(options.divtier));
     if (options.subdiv !== undefined) params.set("subdiv", String(options.subdiv));
     if (options.view) params.set("view", String(options.view));
-    if (options.inputs) params.set("inputs", String(options.inputs));
+    if (options.criteria !== undefined) params.set("criteria", options.criteria ? "1" : "0");
 
     const base = typeof EAE_APP !== "undefined" ? EAE_APP : "http://localhost:3000/tool/a/";
     return base + "?" + params.toString();
@@ -96,12 +114,16 @@ const EaeController = (function () {
     if (!frame) frame = document.getElementById("eae-frame");
     if (!frame) return;
 
-    if (currentGeographyId === geographyId && isReady) {
+    const targetSnapshot = options.snapshot || null;
+    const isSameTarget = currentGeographyId === geographyId && currentSnapshot === targetSnapshot;
+
+    if (isSameTarget && isReady) {
       if (options.center || options.zoom) setView(options);
       return;
     }
 
     currentGeographyId = geographyId;
+    currentSnapshot = targetSnapshot;
     isReady = false;
     pendingMessages = [];
 
@@ -112,19 +134,8 @@ const EaeController = (function () {
     if (errEl) errEl.style.display = "none";
 
     const url = buildUrl(geographyId, options);
-    frame.src = url;
-
-    // Update the "Open full map" link
-    const fullMapLink = document.getElementById("full-map-link");
-    if (fullMapLink) {
-      const standaloneUrl = url.replace(/([?&])embed=1&?/, "$1").replace(/[?&]$/, "");
-      fullMapLink.href = standaloneUrl;
-    }
-
-    const errLink = document.getElementById("eae-error-link");
-    if (errLink) {
-      const standaloneUrl = url.replace(/([?&])embed=1&?/, "$1").replace(/[?&]$/, "");
-      errLink.href = standaloneUrl;
+    if (frame.src !== url) {
+      frame.src = url;
     }
 
     if (readyTimeout) clearTimeout(readyTimeout);
@@ -133,7 +144,7 @@ const EaeController = (function () {
         if (loader) loader.style.display = "none";
         if (errEl) errEl.style.display = "flex";
       }
-    }, 20000);
+    }, 15000);
   }
 
   function send(data) {
@@ -145,8 +156,9 @@ const EaeController = (function () {
     if (!frame || !frame.contentWindow) return;
 
     const message = { type: "eae:set", ...data };
+    const targetOrigin = typeof EAE_ORIGIN !== "undefined" ? EAE_ORIGIN : "http://localhost:3000";
     try {
-      frame.contentWindow.postMessage(message, "*");
+      frame.contentWindow.postMessage(message, targetOrigin);
     } catch (e) {
       console.warn("Could not postMessage to EAE iframe:", e);
     }
@@ -176,55 +188,16 @@ const EaeController = (function () {
     get isReady() {
       return isReady;
     },
+    get divisions() {
+      return divisionsPayload;
+    },
+    get lastView() {
+      return lastView;
+    },
   };
 })();
 
-// ---- Boundary & Geometry helpers -------------------------------------------
-function fitEnvelope(env) {
-  if (!Array.isArray(env) || env.length < 4) return;
-  const center = {
-    lng: +((env[0] + env[2]) / 2).toFixed(4),
-    lat: +((env[1] + env[3]) / 2).toFixed(4),
-  };
-  EaeController.setView({ center, zoom: 8 });
-}
-
-function showDistrict(features) {
-  if (!features || !features.length) return;
-  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-
-  function scanCoords(coords) {
-    if (typeof coords[0] === "number") {
-      const lng = coords[0];
-      const lat = coords[1];
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-    } else {
-      coords.forEach(scanCoords);
-    }
-  }
-
-  features.forEach((f) => {
-    if (f.geometry && f.geometry.coordinates) {
-      scanCoords(f.geometry.coordinates);
-    }
-  });
-
-  if (isFinite(minLng) && isFinite(minLat)) {
-    const center = {
-      lng: +((minLng + maxLng) / 2).toFixed(4),
-      lat: +((minLat + maxLat) / 2).toFixed(4),
-    };
-    EaeController.setView({ center, zoom: 9 });
-  }
-}
-
-function clearDistrictLayer() {}
-
-function setClip(features) {}
-
+// ---- Boundary & Layer synchronization helpers -----------------------------
 function addDataLayer(id, name, gj) {
   const color = COLORS[colorIdx++ % COLORS.length];
   active[id] = {
@@ -237,23 +210,19 @@ function addDataLayer(id, name, gj) {
     total: (gj && gj.features ? gj.features.length : 1),
   };
 
-  const activeIdentifiers = [
-    ...Object.keys(active),
-    ...Object.values(active).map((a) => a.name),
-  ];
-  EaeController.send({ inputs: activeIdentifiers });
+  // Sync with EAE via layers: { on, off }
+  EaeController.send({ layers: { on: [name], off: [] } });
 
   return { shown: active[id].shown, total: active[id].total };
 }
 
 function removeDataLayer(id) {
   if (!active[id]) return;
+  const name = active[id].name;
   delete active[id];
-  const activeIdentifiers = [
-    ...Object.keys(active),
-    ...Object.values(active).map((a) => a.name),
-  ];
-  EaeController.send({ inputs: activeIdentifiers });
+
+  // Sync with EAE via layers: { on, off }
+  EaeController.send({ layers: { on: [], off: [name] } });
 }
 
 function setLayerStyle(id, { color, opacity }) {
@@ -268,13 +237,11 @@ function resetLayerStyle(id) {
   if (a) a.color = a.defaultColor;
 }
 
-function zoomToLayer(id) {
-  return true;
-}
-
 function clearAllLayers() {
+  const names = Object.values(active).map((a) => a.name);
   active = {};
   colorIdx = 0;
-  EaeController.send({ inputs: [] });
+  if (names.length) {
+    EaeController.send({ layers: { on: [], off: names } });
+  }
 }
-
