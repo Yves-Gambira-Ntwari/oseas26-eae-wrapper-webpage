@@ -1,4 +1,4 @@
-﻿<!doctype html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="utf-8" />
@@ -40,8 +40,12 @@
                 <label for="district">District
                   <select id="district" disabled aria-label="District selection"><option value="">Select a state first</option></select>
                 </label>
-                <label for="crop">Crop / Scenario
-                  <select id="crop" aria-label="Crop scenario selection"><option value="">Select a crop / scenario</option></select>
+                <label for="crop">Scenario
+                  <select id="crop" disabled aria-label="Scenario selection"><option value="">Select a scenario</option></select>
+                </label>
+                <label id="criteria-label" style="display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 4px; cursor: pointer;">
+                  <input type="checkbox" id="criteria-toggle" />
+                  <span>Only suitable areas</span>
                 </label>
                 <div id="info" role="status" aria-live="polite"></div>
               </section>
@@ -80,9 +84,7 @@
             <iframe
               id="eae-frame"
               title="Energy Access Explorer"
-              src="http://localhost:3000/tool/a/?id=61cc6dc7-2159-405f-a0df-6faa8c583923&embed=1"
-              allow="geolocation"
-              onload="if (window.EaeController) setTimeout(() => EaeController.hideLoader(), 1000);">
+              allow="geolocation">
             </iframe>
           </div>
         </main>
