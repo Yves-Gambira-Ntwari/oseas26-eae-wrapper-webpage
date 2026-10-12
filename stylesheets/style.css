@@ -1114,3 +1114,34 @@ dialog button.ghost {
     font-size: 12px;
   }
 }
+
+/* W11: body.eae-mode hides Leaflet legend, preview map and tabs */
+body.eae-mode #results,
+body.eae-mode #preview,
+body.eae-mode #stage-bar #tabs {
+  display: none !important;
+}
+
+/* W13: 360px mobile responsiveness with dvh height support */
+@media (max-width: 480px) {
+  :root {
+    --side-w: 100vw;
+  }
+
+  #main {
+    flex-direction: column;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  #map-frame-wrapper {
+    height: calc(100vh - 60px);
+    height: calc(100dvh - 60px);
+  }
+
+  #stage-bar {
+    left: 56px;
+    right: 8px;
+    top: 8px;
+  }
+}
