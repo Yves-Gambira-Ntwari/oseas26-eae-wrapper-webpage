@@ -198,6 +198,15 @@ const EaeController = (function () {
 })();
 
 // ---- Boundary & Layer synchronization helpers -----------------------------
+function fitEnvelope(env) {
+  if (!Array.isArray(env) || env.length < 4) return;
+  const center = {
+    lng: +((env[0] + env[2]) / 2).toFixed(4),
+    lat: +((env[1] + env[3]) / 2).toFixed(4),
+  };
+  EaeController.setView({ center, zoom: 8 });
+}
+
 function addDataLayer(id, name, gj) {
   const color = COLORS[colorIdx++ % COLORS.length];
   active[id] = {
