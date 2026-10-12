@@ -1,11 +1,10 @@
-﻿// config.js - settings you may want to change. No logic here.
+// config.js - settings you may want to change. No logic here.
 
 const API = "https://api.energyaccessexplorer.org";
 
-// Base URL for the embedded EAE tool.
-// Can be overridden via URL parameter ?tool_url=...
-const urlParamTool = new URLSearchParams(location.search).get("tool_url");
-const EAE_APP = urlParamTool || "http://localhost:3000/tool/a/";
+// Base URL for the embedded EAE tool. Config-driven only (no ?tool_url= override).
+const EAE_APP = "http://localhost:3000/tool/a/";
+const EAE_ORIGIN = new URL(EAE_APP).origin;
 
 // Default initial geography (Nagaland state UUID) and fallback settings
 const DEFAULT_GEOGRAPHY_ID = "61cc6dc7-2159-405f-a0df-6faa8c583923";
@@ -68,11 +67,20 @@ const TEXTS = {
     "This page is an independent wrapper around public Energy Access Explorer data based on nagalandgis.in styling. Boundaries and datasets are shown as provided by the source.",
 };
 
-// Crop Scenarios configuration
+// Verified mentor scenarios for Nagaland (61cc6dc7-2159-405f-a0df-6faa8c583923)
 const CROPS = [
-  { id: "scenario_1", label: "Scenario 1: Maize & Rainfed Suitability", dataset: "maize_suitability", inputs: "agriculture,demand" },
-  { id: "scenario_2", label: "Scenario 2: Commercial Rice & Solar Irrigation", dataset: "rice_suitability", inputs: "irrigation,supply" },
-  { id: "maize", label: "Maize Suitability", dataset: "maize_suitability", inputs: "agriculture" },
-  { id: "cassava", label: "Cassava Suitability", dataset: "cassava_suitability", inputs: "crops" },
-  { id: "rice", label: "Rice Suitability", dataset: "rice_suitability", inputs: "irrigation" },
+  {
+    id: "scenario_1",
+    label: "Scenario 1: Maize & Rainfed Suitability (Mock Analysis)",
+    snapshot: "1791614683478",
+    geography: "61cc6dc7-2159-405f-a0df-6faa8c583923",
+    mock: true,
+  },
+  {
+    id: "scenario_2",
+    label: "Scenario 2: Commercial Rice & Solar Irrigation (Mock Analysis)",
+    snapshot: "1791615168733",
+    geography: "61cc6dc7-2159-405f-a0df-6faa8c583923",
+    mock: true,
+  },
 ];
