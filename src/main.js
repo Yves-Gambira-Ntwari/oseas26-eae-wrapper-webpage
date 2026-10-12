@@ -64,7 +64,6 @@ function setTitle(name) {
 }
 
 function clearDistrict() {
-  clearDistrictLayer();
   districtFeatures = [];
   districtProp = null;
 }
@@ -344,13 +343,6 @@ function toggleMenu(d, btn) {
       },
     },
     { label: "Set values manually", needsOn: true, run: () => openValues(d) },
-    {
-      label: "Zoom to layer",
-      needsOn: true,
-      run: () => {
-        if (!zoomToLayer(d.id)) say("Nothing to zoom to in this layer.");
-      },
-    },
   ];
 
   menuEl.innerHTML = items
