@@ -47,8 +47,9 @@ const EaeController = (function () {
   }
 
   function handleMessage(event) {
+    const frameEl = frame || document.getElementById("eae-frame");
     if (typeof EAE_ORIGIN !== "undefined" && event.origin !== EAE_ORIGIN) return;
-    if (frame && event.source !== frame.contentWindow) return;
+    if (frameEl && event.source !== frameEl.contentWindow) return;
     if (!event.data || typeof event.data !== "object") return;
 
     if (event.data.type === "eae:ready") {
@@ -59,6 +60,7 @@ const EaeController = (function () {
       }
 
       hideLoader();
+      console.log("[Wrapper] eae:ready received with divisions:", event.data.divisions);
 
       if (Array.isArray(event.data.divisions)) {
         divisionsPayload = event.data.divisions;
