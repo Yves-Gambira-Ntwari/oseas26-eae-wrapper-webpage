@@ -8,7 +8,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
     />
-    <link rel="stylesheet" href="../stylesheets/style.css" />
+    <link rel="stylesheet" href="../stylesheets/style.css?v=12" />
   </head>
   <body>
     <div id="app">
@@ -73,6 +73,7 @@
 
           <!-- Embedded EAE Frame with loader and fallback error state -->
           <div id="map-frame-wrapper">
+            <div id="placeholder-map" aria-label="World map placeholder"></div>
             <div id="eae-loader" role="status" aria-live="polite">
               <div class="spinner"></div>
               <span>Loading Energy Access Explorer map...</span>
@@ -157,11 +158,10 @@
 
     <!-- Order matters: library -> config -> data -> embed -> preview -> main -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="../src/config.js?v=11"></script>
-    <script src="../src/data.js?v=11"></script>
-    <script src="../src/embed.js?v=11"></script>
-    <script src="../src/preview.js?v=11"></script>
-    <script src="../src/main.js?v=11"></script>
+    <script src="../src/config.js?v=12"></script>
+    <script src="../src/data.js?v=12"></script>
+    <script src="../src/embed.js?v=12"></script>
+    <script src="../src/preview.js?v=12"></script>
+    <script src="../src/main.js?v=12"></script>
   </body>
 </html>
-

@@ -42,10 +42,14 @@ const EaeController = (function () {
     frame = document.getElementById(frameElementId);
     if (!frame) return;
 
+    frame.style.display = "none";
+    hideLoader();
     window.addEventListener("message", handleMessage);
 
     frame.addEventListener("load", () => {
+      if (!currentGeographyId) return;
       frameHasLoaded = true;
+      revealFrame();
       // Hide spinner after iframe paints (1 second grace)
       setTimeout(hideLoader, 1000);
       // Start pinging: after 2s fire first ping, then every 3s until eae:ready
@@ -65,9 +69,6 @@ const EaeController = (function () {
         }, 2000);
       }
     });
-
-    // Fallback: If iframe painted before main scripts attached, dismiss loader
-    setTimeout(hideLoader, 2500);
   }
 
   function hideLoader() {
@@ -76,6 +77,19 @@ const EaeController = (function () {
 
     const errEl = document.getElementById("eae-error");
     if (errEl) errEl.style.display = "none";
+  }
+
+  function showFramePlaceholder() {
+    document.body.classList.remove("eae-mode");
+    if (frame) frame.style.display = "none";
+    window.placeholderShow();
+  }
+
+  function revealFrame() {
+    if (!currentGeographyId || !frame) return;
+    frame.style.display = "block";
+    document.body.classList.add("eae-mode");
+    window.placeholderHide();
   }
 
   function handleMessage(event) {
@@ -106,6 +120,7 @@ const EaeController = (function () {
         pingInterval = null;
       }
 
+      revealFrame();
       hideLoader();
       console.log("[Wrapper] eae:ready received with divisions:", event.data.divisions);
 
@@ -176,6 +191,7 @@ const EaeController = (function () {
     isReady = false;
     frameHasLoaded = false;
     pendingMessages = [];
+    showFramePlaceholder();
 
     // Stop any previous ping loop
     if (pingInterval) {
@@ -207,6 +223,28 @@ const EaeController = (function () {
         }
       }
     }, 60000); // Extended: 60s timeout
+  }
+
+  function clear() {
+    currentGeographyId = null;
+    currentSnapshot = null;
+    isReady = false;
+    frameHasLoaded = false;
+    pendingMessages = [];
+    if (readyTimeout) {
+      clearTimeout(readyTimeout);
+      readyTimeout = null;
+    }
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
+    if (frame) {
+      frame.removeAttribute("src");
+      frame.style.display = "none";
+    }
+    hideLoader();
+    showFramePlaceholder();
   }
 
   function send(data) {
@@ -242,6 +280,7 @@ const EaeController = (function () {
   return {
     init,
     load,
+    clear,
     send,
     whenReady,
     setView,

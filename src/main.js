@@ -529,6 +529,8 @@ async function loadCountries() {
 
 countrySel.addEventListener("change", async () => {
   const token = ++selToken;
+  EaeController.clear();
+  placeholderReset();
   resetLayers();
   clearDistrict();
   states = [];
@@ -547,15 +549,13 @@ countrySel.addEventListener("change", async () => {
   }
 
   setTitle(country.name);
-  fitEnvelope(country.envelope);
+  placeholderFit(country.envelope);
   previewPlace(country.name, country.envelope);
   say(country.name + " selected");
 
   await loadStates(country.id);
   if (token !== selToken) return;
 
-  // A country without sub-areas: use the country itself.
-  if (states.length === 0) selectGeography(country, token);
 });
 
 // ---- 2. States -------------------------------------------------------------
@@ -584,15 +584,22 @@ stateSel.addEventListener("change", () => {
 
   const geo = states.find((s) => s.id === stateSel.value);
   if (!geo) {
+    EaeController.clear();
     fill(districtSel, [], "Select a state first");
     const country = countries.find((c) => c.id === countrySel.value);
-    if (country) previewPlace(country.name, country.envelope);
+    if (country) {
+      placeholderFit(country.envelope);
+      previewPlace(country.name, country.envelope);
+    } else {
+      placeholderReset();
+      previewReset();
+    }
     say("");
     return;
   }
 
   setTitle(geo.name);
-  fitEnvelope(geo.envelope);
+  placeholderFit(geo.envelope);
   previewPlace(geo.name, geo.envelope);
   say(geo.name + " selected");
   selectGeography(geo, token);
@@ -892,7 +899,6 @@ async function restoreFromUrl() {
 refresh();
 if (typeof EaeController !== "undefined") EaeController.init("eae-frame");
 loadCountries().then(restoreFromUrl);
-
 
 
 

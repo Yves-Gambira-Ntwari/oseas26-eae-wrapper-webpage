@@ -1027,13 +1027,26 @@ dialog button.ghost {
   width: 100%;
   height: 100%;
   overflow: hidden;
+  background: #aad3df;
+}
+
+#placeholder-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #aad3df;
+}
+
+#placeholder-map .leaflet-container {
+  background: #aad3df;
 }
 
 #eae-frame {
   width: 100%;
   height: 100%;
   border: 0;
-  display: block;
+  display: none;
   background: #f3f3f3;
 }
 
@@ -1042,7 +1055,7 @@ dialog button.ghost {
   position: absolute;
   inset: 0;
   z-index: 500;
-  background: rgba(255, 255, 255, 0.92);
+  background: transparent;
   display: flex;
   flex-direction: column;
   align-items: center;
@@ -1115,7 +1128,7 @@ dialog button.ghost {
   }
 }
 
-/* W11: body.eae-mode hides Leaflet legend, preview map and tabs */
+/* Hide the wrapper interface only after the EAE iframe is revealed. */
 body.eae-mode #results,
 body.eae-mode #preview,
 body.eae-mode #stage-bar #tabs {

@@ -14,6 +14,12 @@ const mini = L.map("minimap", {
 }).setView(MAP_DEFAULT.center, 1);
 L.tileLayer(TILE_URL, { maxZoom: 19 }).addTo(mini);
 
+const placeholder = document.getElementById("placeholder-map");
+const stageMap = L.map(placeholder, {
+  preferCanvas: true,
+}).setView([0, 0], 1);
+L.tileLayer(TILE_URL, { maxZoom: 19 }).addTo(stageMap);
+
 const pvLabel = document.getElementById("preview-label");
 const pvEmpty = document.getElementById("preview-empty");
 
@@ -110,3 +116,34 @@ function previewResize() {
   mini.invalidateSize();
   if (pvBounds) pvFit(pvBounds);
 }
+
+function placeholderShow() {
+  placeholder.style.display = "block";
+  requestAnimationFrame(() => stageMap.invalidateSize());
+}
+
+function placeholderHide() {
+  placeholder.style.display = "none";
+}
+
+function placeholderFit(envelope) {
+  placeholderShow();
+  if (!Array.isArray(envelope) || envelope.length < 4) return;
+  const bounds = L.latLngBounds(
+    [envelope[1], envelope[0]],
+    [envelope[3], envelope[2]],
+  );
+  if (bounds.isValid()) {
+    stageMap.fitBounds(bounds, { padding: [10, 10], animate: false });
+  }
+}
+
+function placeholderReset() {
+  placeholderShow();
+  stageMap.setView([0, 0], 1);
+}
+
+window.placeholderShow = placeholderShow;
+window.placeholderHide = placeholderHide;
+window.placeholderFit = placeholderFit;
+window.placeholderReset = placeholderReset;
