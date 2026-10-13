@@ -17,12 +17,26 @@ const EaeController = (function () {
   let frame = null;
   let isReady = false;
   let readyTimeout = null;
+  let pingInterval = null;
+  let frameHasLoaded = false;  // track if iframe DOM load fired
   let onReadyCallbacks = [];
   let pendingMessages = [];
   let currentGeographyId = null;
   let currentSnapshot = null;
   let divisionsPayload = [];
   let lastView = null; // { zoom, center: { lng, lat } }
+
+  function pingFrame() {
+    if (isReady || !frame || !frame.contentWindow) return;
+    const targetOrigin = typeof EAE_ORIGIN !== "undefined" ? EAE_ORIGIN : "http://localhost:3000";
+    // Try both origins
+    const origins = [targetOrigin, "http://localhost:3000", "http://127.0.0.1:3000"];
+    for (const origin of new Set(origins)) {
+      try {
+        frame.contentWindow.postMessage({ type: "eae:ping" }, origin);
+      } catch (_) {}
+    }
+  }
 
   function init(frameElementId) {
     frame = document.getElementById(frameElementId);
@@ -31,7 +45,25 @@ const EaeController = (function () {
     window.addEventListener("message", handleMessage);
 
     frame.addEventListener("load", () => {
+      frameHasLoaded = true;
+      // Hide spinner after iframe paints (1 second grace)
       setTimeout(hideLoader, 1000);
+      // Start pinging: after 2s fire first ping, then every 3s until eae:ready
+      if (!isReady) {
+        setTimeout(() => {
+          if (!isReady) {
+            pingFrame();
+            pingInterval = setInterval(() => {
+              if (isReady) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+              } else {
+                pingFrame();
+              }
+            }, 3000);
+          }
+        }, 2000);
+      }
     });
 
     // Fallback: If iframe painted before main scripts attached, dismiss loader
@@ -48,8 +80,19 @@ const EaeController = (function () {
 
   function handleMessage(event) {
     const frameEl = frame || document.getElementById("eae-frame");
-    if (typeof EAE_ORIGIN !== "undefined" && event.origin !== EAE_ORIGIN) return;
-    if (frameEl && event.source !== frameEl.contentWindow) return;
+
+    // Allow localhost and 127.0.0.1 on both ports 3000 and 8000
+    const allowedOrigins = new Set([
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:8000",
+      "http://127.0.0.1:8000",
+    ]);
+    if (typeof EAE_ORIGIN !== "undefined") allowedOrigins.add(EAE_ORIGIN);
+    if (!allowedOrigins.has(event.origin)) return;
+
+    // Relax source check: accept if no contentWindow comparison possible (e.g. cross-origin WindowProxy)
+    if (frameEl && frameEl.contentWindow && event.source !== frameEl.contentWindow) return;
     if (!event.data || typeof event.data !== "object") return;
 
     if (event.data.type === "eae:ready") {
@@ -57,6 +100,10 @@ const EaeController = (function () {
       if (readyTimeout) {
         clearTimeout(readyTimeout);
         readyTimeout = null;
+      }
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
       }
 
       hideLoader();
@@ -127,7 +174,14 @@ const EaeController = (function () {
     currentGeographyId = geographyId;
     currentSnapshot = targetSnapshot;
     isReady = false;
+    frameHasLoaded = false;
     pendingMessages = [];
+
+    // Stop any previous ping loop
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
 
     const loader = document.getElementById("eae-loader");
     if (loader) loader.style.display = "flex";
@@ -143,10 +197,16 @@ const EaeController = (function () {
     if (readyTimeout) clearTimeout(readyTimeout);
     readyTimeout = setTimeout(() => {
       if (!isReady) {
+        // If iframe has loaded DOM, do NOT show error — the map is likely already rendered.
+        // Only show error if iframe itself failed to load at all.
         if (loader) loader.style.display = "none";
-        if (errEl) errEl.style.display = "flex";
+        if (!frameHasLoaded && errEl) errEl.style.display = "flex";
+        else {
+          // Map is rendering — just let it be. Log for debugging.
+          console.warn("[Wrapper] eae:ready timeout reached but iframe has loaded. Map likely visible. Waiting for ping reply.");
+        }
       }
-    }, 15000);
+    }, 60000); // Extended: 60s timeout
   }
 
   function send(data) {
