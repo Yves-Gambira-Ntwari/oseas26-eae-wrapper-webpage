@@ -8,7 +8,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
     />
-    <link rel="stylesheet" href="../stylesheets/style.css?v=12" />
+    <link rel="stylesheet" href="../stylesheets/style.css?v=13" />
   </head>
   <body>
     <div id="app">
@@ -71,17 +71,7 @@
                     <option value="">Select a scenario</option>
                   </select>
                 </label>
-                <label
-                  id="criteria-label"
-                  style="
-                    display: flex;
-                    align-items: center;
-                    gap: 8px;
-                    font-size: 13px;
-                    margin-top: 4px;
-                    cursor: pointer;
-                  "
-                >
+                <label id="criteria-label">
                   <input type="checkbox" id="criteria-toggle" />
                   <span>Only suitable areas</span>
                 </label>
@@ -94,12 +84,15 @@
           </div>
         </div>
 
-        <!-- CENTRE: tabs + iframe map container -->
+        <!-- CENTRE: toolbar row + map container -->
         <main id="stage" role="main">
-          <button id="menu-btn" type="button" aria-label="Open menu">
-            &#9776;
-          </button>
+          <!-- The toolbar is a real row ABOVE the map (not an overlay), so it
+               can never collide with the map's own zoom controls. -->
           <div id="stage-bar">
+            <button id="menu-btn" type="button" aria-label="Open menu">
+              &#9776;
+            </button>
+
             <div id="tabs" role="tablist">
               <button
                 type="button"
@@ -122,8 +115,8 @@
                 ANALYSIS
               </button>
             </div>
+
             <div id="stage-actions">
-              <!-- NEW: copies the full current URL -->
               <button
                 id="share-btn"
                 type="button"
@@ -138,7 +131,8 @@
                 rel="noopener noreferrer"
                 title="Open full map in standalone tab"
               >
-                Open full map &nearr;
+                <span class="full-label">Open full map</span>
+                <span aria-hidden="true">&nearr;</span>
               </a>
             </div>
           </div>
@@ -169,9 +163,7 @@
                 if (window.EaeController)
                   setTimeout(() => EaeController.hideLoader(), 1000);
               "
-            >
-              allow="geolocation">
-            </iframe>
+            ></iframe>
           </div>
         </main>
 

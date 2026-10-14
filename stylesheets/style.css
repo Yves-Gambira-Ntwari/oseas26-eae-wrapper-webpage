@@ -12,6 +12,8 @@
   --side-w: 400px;
   --rail-w: 108px;
   --results-w: 280px;
+  --bar-h: 56px; /* height of the toolbar row above the map */
+  --ctl-h: 36px; /* height shared by every toolbar control */
 }
 
 * {
@@ -159,6 +161,19 @@ button {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* "Only suitable areas" checkbox (was inline style in the HTML) */
+#area #criteria-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+  cursor: pointer;
 }
 
 #area select {
@@ -391,38 +406,83 @@ button {
   cursor: not-allowed;
 }
 
-/* ---- Stage: tabs + map ------------------------------------------------ */
+/* ======================================================================
+   STAGE: toolbar row (menu | tabs | actions) stacked above the map.
+   The toolbar is in normal flow, so it never overlaps the map, the
+   Leaflet zoom buttons or anything inside the EAE iframe.
+   ====================================================================== */
 #stage {
   flex: 1;
   min-width: 0;
-  position: relative;
-}
-
-#map {
-  position: absolute;
-  inset: 0;
-}
-
-#tabs {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
+  min-height: 0;
   display: flex;
-  width: min(440px, calc(100% - 120px));
+  flex-direction: column;
+  position: relative;
+  background: #f8f9fa;
+}
+
+#stage-bar {
+  flex: none;
+  height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
   background: #fff;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--grey-line);
+  /* sits above Leaflet panes/controls, below dialogs and the drawer */
+  position: relative;
+  z-index: 1100;
+}
+
+/* Hamburger: hidden on desktop, a normal toolbar item on mobile */
+#menu-btn {
+  display: none;
+  flex: none;
+  width: var(--ctl-h);
+  height: var(--ctl-h);
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: var(--green);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+#menu-btn:hover {
+  background: var(--green-dark);
+}
+
+/* Tabs */
+#tabs {
+  flex: 0 1 360px;
+  min-width: 0;
+  display: flex;
+  height: var(--ctl-h);
+  background: #fff;
+  border: 1px solid var(--green);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .tab {
   flex: 1;
+  min-width: 0;
   border: 0;
   background: #fff;
   color: var(--green);
   font-weight: 700;
-  font-size: 15px;
-  padding: 14px 8px;
+  font-size: 14px;
+  padding: 0 16px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab:hover:not(.active) {
+  background: var(--green-light);
 }
 
 .tab.active {
@@ -430,20 +490,140 @@ button {
   color: #fff;
 }
 
-#menu-btn {
-  display: none;
-  position: absolute;
-  top: 16px;
-  left: 12px;
-  z-index: 1000;
-  width: 44px;
-  height: 44px;
-  border: 0;
+/* Right-hand actions. margin-left:auto keeps them on the right even when
+   the tabs are hidden (eae-mode). */
+#stage-actions {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Share button and Open-full-map link share ONE look and ONE height */
+#share-btn,
+#full-map-link {
+  height: var(--ctl-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--green);
   border-radius: 4px;
-  background: var(--green);
-  color: #fff;
-  font-size: 20px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  background: #fff;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+#share-btn:hover,
+#full-map-link:hover {
+  background: var(--green-light);
+}
+
+#share-btn:focus-visible,
+#full-map-link:focus-visible,
+#menu-btn:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--green-dark);
+  outline-offset: 2px;
+}
+
+/* Map area fills what is left under the toolbar */
+#map-frame-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  background: #aad3df;
+}
+
+#placeholder-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #aad3df;
+}
+
+#placeholder-map .leaflet-container {
+  background: #aad3df;
+}
+
+#eae-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: none;
+  background: #f3f3f3;
+}
+
+/* Loading overlay */
+#eae-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--green-dark);
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid var(--green-light);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error fallback */
+#eae-error {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+#eae-error p {
+  margin: 0;
+  font-size: 15px;
+  color: #c53030;
+  font-weight: 600;
+}
+
+#eae-error-link {
+  color: var(--green);
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 /* Hover tooltip + click popup on the map */
@@ -495,6 +675,13 @@ button {
   margin-top: 4px;
   font-size: 11px;
   color: var(--muted);
+}
+
+/* Hide the wrapper interface only after the EAE iframe is revealed. */
+body.eae-mode #results,
+body.eae-mode #preview,
+body.eae-mode #stage-bar #tabs {
+  display: none !important;
 }
 
 /* ---- Right panel ------------------------------------------------------ */
@@ -850,7 +1037,6 @@ dialog button.ghost {
   min-width: 0;
 }
 
-
 .values-error {
   min-height: 18px;
   margin: 0 0 8px;
@@ -871,16 +1057,26 @@ dialog button.ghost {
     --rail-w: 92px;
     --results-w: 240px;
   }
+
   .rail-item {
     font-size: 13px;
     padding-left: 12px;
+  }
+
+  #tabs {
+    flex-basis: 280px;
+  }
+
+  .tab {
+    padding: 0 10px;
+    font-size: 13px;
   }
 }
 
 /* ---- Mobile: side panel becomes a drawer, results a bottom sheet ------ */
 @media (max-width: 800px) {
   #menu-btn {
-    display: block;
+    display: inline-flex;
   }
 
   #side {
@@ -899,24 +1095,8 @@ dialog button.ghost {
     transform: none;
   }
 
-  #tabs {
-    left: 64px;
-    right: 12px;
-    width: auto;
-    transform: none;
-  }
-
-  .tab {
-    padding: 12px 4px;
-    font-size: 13px;
-  }
-
   #main {
     flex-direction: column;
-  }
-
-  #stage {
-    flex: 1;
   }
 
   #results {
@@ -944,217 +1124,61 @@ dialog button.ghost {
     justify-content: center;
   }
 }
-/* Appended EAE Iframe, Stage Bar, Loader, and Phone Layout enhancements */
 
-#stage {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: #f8f9fa;
-}
+/* ---- Phones: compact toolbar so everything fits on one line ----------- */
+@media (max-width: 600px) {
+  :root {
+    --bar-h: 52px;
+    --ctl-h: 34px;
+  }
 
-#stage-bar {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  right: 14px;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  pointer-events: none;
-}
-
-#stage-bar > * {
-  pointer-events: auto;
-}
-
-#tabs {
-  position: static;
-  transform: none;
-  display: flex;
-  background: #fff;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--grey-line);
-}
-
-.tab {
-  border: 0;
-  background: #fff;
-  color: var(--green);
-  font-weight: 700;
-  font-size: 14px;
-  padding: 10px 24px;
-  transition: background 0.15s, color 0.15s;
-}
-
-.tab.active {
-  background: var(--green);
-  color: #fff;
-}
-
-#stage-actions {
-  display: flex;
-  gap: 8px;
-}
-
-#full-map-link {
-  background: #fff;
-  color: var(--green);
-  font-weight: 600;
-  font-size: 13px;
-  padding: 10px 16px;
-  border-radius: 4px;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--grey-line);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-#full-map-link:hover {
-  background: var(--green-light);
-}
-
-#map-frame-wrapper {
-  position: relative;
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-  background: #aad3df;
-}
-
-#placeholder-map {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  background: #aad3df;
-}
-
-#placeholder-map .leaflet-container {
-  background: #aad3df;
-}
-
-#eae-frame {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: none;
-  background: #f3f3f3;
-}
-
-/* Loading Overlay */
-#eae-loader {
-  position: absolute;
-  inset: 0;
-  z-index: 500;
-  background: transparent;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  color: var(--green-dark);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 4px solid var(--green-light);
-  border-top-color: var(--green);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Error Fallback */
-#eae-error {
-  position: absolute;
-  inset: 0;
-  z-index: 500;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px;
-  text-align: center;
-}
-
-#eae-error p {
-  margin: 0;
-  font-size: 15px;
-  color: #c53030;
-  font-weight: 600;
-}
-
-#eae-error-link {
-  color: var(--green);
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-/* Mobile Adjustments (<= 768px) */
-@media (max-width: 768px) {
   #stage-bar {
-    top: 10px;
-    left: 64px;
-    right: 10px;
-    flex-wrap: wrap;
-    gap: 8px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  #tabs {
+    flex: 1 1 auto;
   }
 
   .tab {
-    padding: 8px 14px;
+    padding: 0 8px;
     font-size: 12px;
   }
 
+  #stage-actions {
+    gap: 6px;
+  }
+
+  #share-btn,
   #full-map-link {
-    padding: 8px 10px;
+    padding: 0 10px;
     font-size: 12px;
   }
 }
 
-/* Hide the wrapper interface only after the EAE iframe is revealed. */
-body.eae-mode #results,
-body.eae-mode #preview,
-body.eae-mode #stage-bar #tabs {
-  display: none !important;
-}
-
-/* W13: 360px mobile responsiveness with dvh height support */
+/* Very narrow phones (360px): the "Open full map" link keeps only its arrow */
 @media (max-width: 480px) {
   :root {
     --side-w: 100vw;
   }
 
   #main {
-    flex-direction: column;
-    height: 100vh;
-    height: 100dvh;
+    height: 100%;
   }
 
-  #map-frame-wrapper {
-    height: calc(100vh - 60px);
-    height: calc(100dvh - 60px);
+  #full-map-link .full-label {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip: rect(0 0 0 0);
+    white-space: nowrap;
   }
 
-  #stage-bar {
-    left: 56px;
-    right: 8px;
-    top: 8px;
+  #full-map-link {
+    width: var(--ctl-h);
+    padding: 0;
+    font-size: 16px;
   }
 }
