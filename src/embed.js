@@ -17,24 +17,58 @@ const EaeController = (function () {
   let frame = null;
   let isReady = false;
   let readyTimeout = null;
+  let pingInterval = null;
+  let frameHasLoaded = false;  // track if iframe DOM load fired
   let onReadyCallbacks = [];
   let pendingMessages = [];
   let currentGeographyId = null;
+  let currentSnapshot = null;
+  let divisionsPayload = [];
+  let lastView = null; // { zoom, center: { lng, lat } }
+
+  function pingFrame() {
+    if (isReady || !frame || !frame.contentWindow) return;
+    const targetOrigin = typeof EAE_ORIGIN !== "undefined" ? EAE_ORIGIN : "http://localhost:3000";
+    // Try both origins
+    const origins = [targetOrigin, "http://localhost:3000", "http://127.0.0.1:3000"];
+    for (const origin of new Set(origins)) {
+      try {
+        frame.contentWindow.postMessage({ type: "eae:ping" }, origin);
+      } catch (_) {}
+    }
+  }
 
   function init(frameElementId) {
     frame = document.getElementById(frameElementId);
     if (!frame) return;
 
-    currentGeographyId = typeof DEFAULT_GEOGRAPHY_ID !== "undefined" ? DEFAULT_GEOGRAPHY_ID : null;
-
+    frame.style.display = "none";
+    hideLoader();
     window.addEventListener("message", handleMessage);
 
     frame.addEventListener("load", () => {
+      if (!currentGeographyId) return;
+      frameHasLoaded = true;
+      revealFrame();
+      // Hide spinner after iframe paints (1 second grace)
       setTimeout(hideLoader, 1000);
+      // Start pinging: after 2s fire first ping, then every 3s until eae:ready
+      if (!isReady) {
+        setTimeout(() => {
+          if (!isReady) {
+            pingFrame();
+            pingInterval = setInterval(() => {
+              if (isReady) {
+                clearInterval(pingInterval);
+                pingInterval = null;
+              } else {
+                pingFrame();
+              }
+            }, 3000);
+          }
+        }, 2000);
+      }
     });
-
-    // Fallback: If iframe painted before main scripts attached, dismiss loader
-    setTimeout(hideLoader, 2500);
   }
 
   function hideLoader() {
@@ -45,7 +79,34 @@ const EaeController = (function () {
     if (errEl) errEl.style.display = "none";
   }
 
+  function showFramePlaceholder() {
+    document.body.classList.remove("eae-mode");
+    if (frame) frame.style.display = "none";
+    window.placeholderShow();
+  }
+
+  function revealFrame() {
+    if (!currentGeographyId || !frame) return;
+    frame.style.display = "block";
+    document.body.classList.add("eae-mode");
+    window.placeholderHide();
+  }
+
   function handleMessage(event) {
+    const frameEl = frame || document.getElementById("eae-frame");
+
+    // Allow localhost and 127.0.0.1 on both ports 3000 and 8000
+    const allowedOrigins = new Set([
+      "http://localhost:3000",
+      "http://127.0.0.1:3000",
+      "http://localhost:8000",
+      "http://127.0.0.1:8000",
+    ]);
+    if (typeof EAE_ORIGIN !== "undefined") allowedOrigins.add(EAE_ORIGIN);
+    if (!allowedOrigins.has(event.origin)) return;
+
+    // Relax source check: accept if no contentWindow comparison possible (e.g. cross-origin WindowProxy)
+    if (frameEl && frameEl.contentWindow && event.source !== frameEl.contentWindow) return;
     if (!event.data || typeof event.data !== "object") return;
 
     if (event.data.type === "eae:ready") {
@@ -54,8 +115,21 @@ const EaeController = (function () {
         clearTimeout(readyTimeout);
         readyTimeout = null;
       }
+      if (pingInterval) {
+        clearInterval(pingInterval);
+        pingInterval = null;
+      }
 
+      revealFrame();
       hideLoader();
+      console.log("[Wrapper] eae:ready received with divisions:", event.data.divisions);
+
+      if (Array.isArray(event.data.divisions)) {
+        divisionsPayload = event.data.divisions;
+        if (typeof window.onDivisionsLoaded === "function") {
+          window.onDivisionsLoaded(divisionsPayload);
+        }
+      }
 
       pendingMessages.forEach((msg) => send(msg));
       pendingMessages = [];
@@ -68,6 +142,14 @@ const EaeController = (function () {
         }
       });
       onReadyCallbacks = [];
+    } else if (event.data.type === "eae:view") {
+      lastView = {
+        zoom: event.data.zoom,
+        center: event.data.center,
+      };
+      if (typeof window.onEaeViewChanged === "function") {
+        window.onEaeViewChanged(lastView);
+      }
     }
   }
 
@@ -86,7 +168,7 @@ const EaeController = (function () {
     if (options.divtier !== undefined) params.set("divtier", String(options.divtier));
     if (options.subdiv !== undefined) params.set("subdiv", String(options.subdiv));
     if (options.view) params.set("view", String(options.view));
-    if (options.inputs) params.set("inputs", String(options.inputs));
+    if (options.criteria !== undefined) params.set("criteria", options.criteria ? "1" : "0");
 
     const base = typeof EAE_APP !== "undefined" ? EAE_APP : "http://localhost:3000/tool/a/";
     return base + "?" + params.toString();
@@ -96,14 +178,26 @@ const EaeController = (function () {
     if (!frame) frame = document.getElementById("eae-frame");
     if (!frame) return;
 
-    if (currentGeographyId === geographyId && isReady) {
+    const targetSnapshot = options.snapshot || null;
+    const isSameTarget = currentGeographyId === geographyId && currentSnapshot === targetSnapshot;
+
+    if (isSameTarget && isReady) {
       if (options.center || options.zoom) setView(options);
       return;
     }
 
     currentGeographyId = geographyId;
+    currentSnapshot = targetSnapshot;
     isReady = false;
+    frameHasLoaded = false;
     pendingMessages = [];
+    showFramePlaceholder();
+
+    // Stop any previous ping loop
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
 
     const loader = document.getElementById("eae-loader");
     if (loader) loader.style.display = "flex";
@@ -112,28 +206,45 @@ const EaeController = (function () {
     if (errEl) errEl.style.display = "none";
 
     const url = buildUrl(geographyId, options);
-    frame.src = url;
-
-    // Update the "Open full map" link
-    const fullMapLink = document.getElementById("full-map-link");
-    if (fullMapLink) {
-      const standaloneUrl = url.replace(/([?&])embed=1&?/, "$1").replace(/[?&]$/, "");
-      fullMapLink.href = standaloneUrl;
-    }
-
-    const errLink = document.getElementById("eae-error-link");
-    if (errLink) {
-      const standaloneUrl = url.replace(/([?&])embed=1&?/, "$1").replace(/[?&]$/, "");
-      errLink.href = standaloneUrl;
+    if (frame.src !== url) {
+      frame.src = url;
     }
 
     if (readyTimeout) clearTimeout(readyTimeout);
     readyTimeout = setTimeout(() => {
       if (!isReady) {
+        // If iframe has loaded DOM, do NOT show error — the map is likely already rendered.
+        // Only show error if iframe itself failed to load at all.
         if (loader) loader.style.display = "none";
-        if (errEl) errEl.style.display = "flex";
+        if (!frameHasLoaded && errEl) errEl.style.display = "flex";
+        else {
+          // Map is rendering — just let it be. Log for debugging.
+          console.warn("[Wrapper] eae:ready timeout reached but iframe has loaded. Map likely visible. Waiting for ping reply.");
+        }
       }
-    }, 20000);
+    }, 60000); // Extended: 60s timeout
+  }
+
+  function clear() {
+    currentGeographyId = null;
+    currentSnapshot = null;
+    isReady = false;
+    frameHasLoaded = false;
+    pendingMessages = [];
+    if (readyTimeout) {
+      clearTimeout(readyTimeout);
+      readyTimeout = null;
+    }
+    if (pingInterval) {
+      clearInterval(pingInterval);
+      pingInterval = null;
+    }
+    if (frame) {
+      frame.removeAttribute("src");
+      frame.style.display = "none";
+    }
+    hideLoader();
+    showFramePlaceholder();
   }
 
   function send(data) {
@@ -145,8 +256,9 @@ const EaeController = (function () {
     if (!frame || !frame.contentWindow) return;
 
     const message = { type: "eae:set", ...data };
+    const targetOrigin = typeof EAE_ORIGIN !== "undefined" ? EAE_ORIGIN : "http://localhost:3000";
     try {
-      frame.contentWindow.postMessage(message, "*");
+      frame.contentWindow.postMessage(message, targetOrigin);
     } catch (e) {
       console.warn("Could not postMessage to EAE iframe:", e);
     }
@@ -168,6 +280,7 @@ const EaeController = (function () {
   return {
     init,
     load,
+    clear,
     send,
     whenReady,
     setView,
@@ -176,10 +289,16 @@ const EaeController = (function () {
     get isReady() {
       return isReady;
     },
+    get divisions() {
+      return divisionsPayload;
+    },
+    get lastView() {
+      return lastView;
+    },
   };
 })();
 
-// ---- Boundary & Geometry helpers -------------------------------------------
+// ---- Boundary & Layer synchronization helpers -----------------------------
 function fitEnvelope(env) {
   if (!Array.isArray(env) || env.length < 4) return;
   const center = {
@@ -188,42 +307,6 @@ function fitEnvelope(env) {
   };
   EaeController.setView({ center, zoom: 8 });
 }
-
-function showDistrict(features) {
-  if (!features || !features.length) return;
-  let minLng = Infinity, maxLng = -Infinity, minLat = Infinity, maxLat = -Infinity;
-
-  function scanCoords(coords) {
-    if (typeof coords[0] === "number") {
-      const lng = coords[0];
-      const lat = coords[1];
-      if (lng < minLng) minLng = lng;
-      if (lng > maxLng) maxLng = lng;
-      if (lat < minLat) minLat = lat;
-      if (lat > maxLat) maxLat = lat;
-    } else {
-      coords.forEach(scanCoords);
-    }
-  }
-
-  features.forEach((f) => {
-    if (f.geometry && f.geometry.coordinates) {
-      scanCoords(f.geometry.coordinates);
-    }
-  });
-
-  if (isFinite(minLng) && isFinite(minLat)) {
-    const center = {
-      lng: +((minLng + maxLng) / 2).toFixed(4),
-      lat: +((minLat + maxLat) / 2).toFixed(4),
-    };
-    EaeController.setView({ center, zoom: 9 });
-  }
-}
-
-function clearDistrictLayer() {}
-
-function setClip(features) {}
 
 function addDataLayer(id, name, gj) {
   const color = COLORS[colorIdx++ % COLORS.length];
@@ -237,23 +320,19 @@ function addDataLayer(id, name, gj) {
     total: (gj && gj.features ? gj.features.length : 1),
   };
 
-  const activeIdentifiers = [
-    ...Object.keys(active),
-    ...Object.values(active).map((a) => a.name),
-  ];
-  EaeController.send({ inputs: activeIdentifiers });
+  // Sync with EAE via layers: { on, off }
+  EaeController.send({ layers: { on: [name], off: [] } });
 
   return { shown: active[id].shown, total: active[id].total };
 }
 
 function removeDataLayer(id) {
   if (!active[id]) return;
+  const name = active[id].name;
   delete active[id];
-  const activeIdentifiers = [
-    ...Object.keys(active),
-    ...Object.values(active).map((a) => a.name),
-  ];
-  EaeController.send({ inputs: activeIdentifiers });
+
+  // Sync with EAE via layers: { on, off }
+  EaeController.send({ layers: { on: [], off: [name] } });
 }
 
 function setLayerStyle(id, { color, opacity }) {
@@ -268,13 +347,11 @@ function resetLayerStyle(id) {
   if (a) a.color = a.defaultColor;
 }
 
-function zoomToLayer(id) {
-  return true;
-}
-
 function clearAllLayers() {
+  const names = Object.values(active).map((a) => a.name);
   active = {};
   colorIdx = 0;
-  EaeController.send({ inputs: [] });
+  if (names.length) {
+    EaeController.send({ layers: { on: [], off: names } });
+  }
 }
-

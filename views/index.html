@@ -8,7 +8,7 @@
       rel="stylesheet"
       href="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.css"
     />
-    <link rel="stylesheet" href="../stylesheets/style.css" />
+    <link rel="stylesheet" href="../stylesheets/style.css?v=12" />
   </head>
   <body>
     <div id="app">
@@ -66,10 +66,24 @@
                   </select>
                 </label>
                 <label for="crop"
-                  >Crop / Scenario
-                  <select id="crop" aria-label="Crop scenario selection">
-                    <option value="">Select a crop / scenario</option>
+                  >Scenario
+                  <select id="crop" disabled aria-label="Scenario selection">
+                    <option value="">Select a scenario</option>
                   </select>
+                </label>
+                <label
+                  id="criteria-label"
+                  style="
+                    display: flex;
+                    align-items: center;
+                    gap: 8px;
+                    font-size: 13px;
+                    margin-top: 4px;
+                    cursor: pointer;
+                  "
+                >
+                  <input type="checkbox" id="criteria-toggle" />
+                  <span>Only suitable areas</span>
                 </label>
                 <div id="info" role="status" aria-live="polite"></div>
               </section>
@@ -131,6 +145,7 @@
 
           <!-- Embedded EAE Frame with loader and fallback error state -->
           <div id="map-frame-wrapper">
+            <div id="placeholder-map" aria-label="World map placeholder"></div>
             <div id="eae-loader" role="status" aria-live="polite">
               <div class="spinner"></div>
               <span>Loading Energy Access Explorer map...</span>
@@ -148,12 +163,7 @@
             <iframe
               id="eae-frame"
               title="Energy Access Explorer"
-              src="http://localhost:3000/tool/a/?id=61cc6dc7-2159-405f-a0df-6faa8c583923&embed=1"
               allow="geolocation"
-              onload="
-                if (window.EaeController)
-                  setTimeout(() => EaeController.hideLoader(), 1000);
-              "
             >
             </iframe>
           </div>
@@ -243,11 +253,10 @@
 
     <!-- Order matters: library -> config -> data -> embed -> preview -> main -> share -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/leaflet.min.js"></script>
-    <script src="../src/config.js?v=7"></script>
-    <script src="../src/data.js?v=7"></script>
-    <script src="../src/embed.js?v=7"></script>
-    <script src="../src/preview.js?v=7"></script>
-    <script src="../src/main.js?v=7"></script>
-    <script src="../src/share.js?v=7"></script>
+    <script src="../src/config.js?v=12"></script>
+    <script src="../src/data.js?v=12"></script>
+    <script src="../src/embed.js?v=12"></script>
+    <script src="../src/preview.js?v=12"></script>
+    <script src="../src/main.js?v=12"></script>
   </body>
 </html>

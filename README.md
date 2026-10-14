@@ -97,49 +97,59 @@ directories contain:
 
 ## Local Setup & How to Run
 
-1. **Start the local server:**
+1. **Serve the EAE Tool Fork (Port 3000):**
+   In the `tool` repository directory:
    ```bash
-   python server.py
-   ```
-   This serves the wrapper page at `http://localhost:8000` and provides a localhost-restricted proxy (`/proxy?url=...`) for CORS-restricted S3 files.
+   # 1. Compile TypeScript
+   npx tsc -p .
 
-2. **Run your EAE tool build (local or hosted):**
-   - For local development, serve your built `tool` fork on port 3000:
-     ```bash
-     npx http-server serve -p 3000 -c-1
-     ```
-   - Alternatively, pass `?tool_url=<your-hosted-pages-url>/tool/a/` in the browser address bar.
+   # 2. Assemble distribution with BSD Make
+   bmake build-a   # on Linux/macOS, or: wsl bash -c "bmake build-a" on Windows
+
+   # 3. Serve the tool on port 3000
+   npx http-server serve -p 3000 -c-1
+   ```
+
+2. **Serve the Wrapper Webpage (Port 8000):**
+   In this repository root directory:
+   ```bash
+   npx http-server -p 8000 -c-1
+   ```
+   *(Or using Python: `python -m http.server 8000`)*
 
 3. **Open the application:**
-   - Open [http://localhost:8000/views/index.html](http://localhost:8000/views/index.html).
+   Navigate in your browser to:
+   [http://localhost:8000/views/index.html](http://localhost:8000/views/index.html)
 
 ---
 
 ## Features & Implementation Details
 
-- **Embedded EAE Iframe (`src/embed.js`):** Replaces the Leaflet map in the main stage with an accessible, high-performance EAE iframe.
-- **Collapsed Panels on Load:** Embedded iframe runs in `?embed=1` mode, hiding the top navbar and collapsing left/right panels on initial load.
-- **Boundary Dropdown Hierarchy:** Selecting Country, State (e.g. Nagaland), and District communicates with the embedded map to zoom to the boundary without full page reloads.
-- **Crop / Scenario Selector:** Allows choosing between Scenarios (Scenario 1, Scenario 2, Maize, Rice, Cassava) which passes filter inputs and updates suitability analysis on the map.
-- **Sensible Default Zoom:** Centers on Nagaland state (`lng: 94.5, lat: 26.1`, zoom level 8) by default.
-- **Responsive Phone & Desktop Layout:** Adapts smoothly across phone (360px), tablet (768px), and desktop (1200px) viewports with branding and styling inspired by [nagalandgis.in](https://nagalandgis.in/).
-- **Loading & Fallback Error States:** Features an animated loading spinner while waiting for the iframe's `eae:ready` handshake, and an "Open full map" fallback link.
+- **Embedded EAE Iframe (`src/embed.js`):** Integrates the customized EAE platform inside a central responsive stage with full WebGL performance.
+- **Strict PostMessage Protocol:** Secure bidirectional messaging between wrapper and tool (`eae:ready`, `eae:set`, `eae:view`) validated against `EAE_ORIGIN`.
+- **Default Startup Screen (W1):** Starts clean with a Leaflet overview map and empty state dropdowns. The EAE iframe only loads once a geography is selected.
+- **Administrative Boundary Hierarchy (W4 & W5):** Dynamic Country → State selection, followed by district selection populated directly from the tool's `eae:ready` divisions payload. Selecting a district zooms the Mapbox camera to that district.
+- **Mentor Analysis Scenarios (W8):** Configured with verified mentor snapshot IDs for Nagaland:
+  - **Scenario 1**: Population & Solar GHI (`1791614683478`)
+  - **Scenario 2**: Schools & Solar GHI (`1791615168733`)
+  Automatically disabled with *"No scenarios for this area yet"* when viewing geographies without preconfigured scenarios (e.g. Jharkhand).
+- **Criteria Mask Toggle:** Real-time *"Only suitable areas"* checkbox sends criteria filtering to the embedded tool without page reload.
+- **Two-Way URL State Synchronization (W9 & W10):** Automatically reflects active state in query parameters (`?country=...&state=...&district=...&scenario=...&criteria=...`). Reloading the page or sharing the link restores the exact state.
+- **Open Full Map Action:** Direct link to open the current analysis in a standalone EAE tab with identical parameters.
+- **Responsive Mobile & Desktop Layout (W13):** Fluid layout supporting viewports from 360px up to widescreen desktops, adhering to Nagaland GIS branding guidelines.
 
 ---
 
-## How to Add a Crop Scenario or Boundary
+## Configuration (`src/config.js`)
 
-1. **Adding a Crop / Scenario:**
-   - In `src/config.js`, add a new entry to the `CROPS` array:
-     ```javascript
-     { id: "scenario_new", label: "Scenario Name", dataset: "dataset_key", inputs: "input_categories" }
-     ```
-2. **Adding an Administrative Boundary:**
-   - Boundaries are dynamically queried from the EAE API (`/geographies`). New administrative subdivisions published in the EAE backend automatically populate in the Country -> State -> District dropdowns.
+All endpoints and preconfigured snapshots are centralized in `src/config.js`:
+- `EAE_APP`: Points to the local tool endpoint (`http://localhost:3000/tool/a/`).
+- `DEFAULT_GEOGRAPHY_ID`: Default Nagaland UUID (`61cc6dc7-2159-405f-a0df-6faa8c583923`).
+- `CROPS`: Verified mentor scenario definitions.
 
 ---
 
-## Known Limits
+## License & Attribution
 
-- **Initial Load Time:** Startup of the complex EAE WebGL/Mapbox engine inside an iframe takes 5–15 seconds depending on network connection and device performance.
-- **S3 CORS Restrictions:** Some S3 vector files require the local `server.py` proxy on localhost because upstream S3 buckets do not allow cross-origin requests directly from arbitrary client origins.
+Developed for the Open Source in Energy Access Symposium Hackathon (OSEAS 2026).
+Based on Energy Access Explorer by the World Resources Institute (WRI). Licensed under MIT.

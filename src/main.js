@@ -64,7 +64,6 @@ function setTitle(name) {
 }
 
 function clearDistrict() {
-  clearDistrictLayer();
   districtFeatures = [];
   districtProp = null;
 }
@@ -76,6 +75,10 @@ function resetLayers() {
   closeMenu();
 }
 
+const cropSel = $("crop");
+const criteriaToggle = $("criteria-toggle");
+const fullMapLink = $("full-map-link");
+
 // ---- URL state: write the current selection into the address bar -----------
 function syncUrl() {
   if (restoring) return;
@@ -83,10 +86,56 @@ function syncUrl() {
   if (countrySel.value) p.set("country", countrySel.value);
   if (stateSel.value) p.set("state", stateSel.value);
   if (districtSel.value) p.set("district", districtSel.value);
+  if (cropSel && cropSel.value) p.set("scenario", cropSel.value);
+  if (criteriaToggle && criteriaToggle.checked) p.set("criteria", "1");
   const ids = Object.keys(active);
   if (ids.length) p.set("layers", ids.join(","));
   const q = p.toString();
   history.replaceState(null, "", location.pathname + (q ? "?" + q : ""));
+
+  updateFullMapLink();
+}
+
+function updateFullMapLink() {
+  if (!fullMapLink) return;
+  const stateId = stateSel.value;
+  if (!stateId) {
+    fullMapLink.removeAttribute("href");
+    return;
+  }
+
+  const p = new URLSearchParams();
+  p.set("id", stateId);
+
+  const selectedCrop = (typeof CROPS !== "undefined" && cropSel)
+    ? CROPS.find((c) => c.id === cropSel.value)
+    : null;
+  if (selectedCrop && selectedCrop.snapshot) {
+    p.set("snapshot", selectedCrop.snapshot);
+  }
+
+  if (districtSel.value) {
+    p.set("divtier", "1");
+    p.set("subdiv", districtSel.value);
+  }
+
+  if (EaeController.lastView) {
+    p.set("zoom", EaeController.lastView.zoom);
+    p.set("lng", EaeController.lastView.center.lng);
+    p.set("lat", EaeController.lastView.center.lat);
+  }
+
+  if (criteriaToggle && criteriaToggle.checked) {
+    p.set("criteria", "1");
+  }
+
+  const activeNames = Object.values(active).map((a) => a.name);
+  if (activeNames.length) {
+    p.set("inputs", activeNames.join(","));
+  }
+
+  const base = typeof EAE_APP !== "undefined" ? EAE_APP : "http://localhost:3000/tool/a/";
+  fullMapLink.href = base + "?" + p.toString();
 }
 
 // ---- Left panel: dataset list ----------------------------------------------
@@ -294,13 +343,6 @@ function toggleMenu(d, btn) {
       },
     },
     { label: "Set values manually", needsOn: true, run: () => openValues(d) },
-    {
-      label: "Zoom to layer",
-      needsOn: true,
-      run: () => {
-        if (!zoomToLayer(d.id)) say("Nothing to zoom to in this layer.");
-      },
-    },
   ];
 
   menuEl.innerHTML = items
@@ -487,6 +529,8 @@ async function loadCountries() {
 
 countrySel.addEventListener("change", async () => {
   const token = ++selToken;
+  EaeController.clear();
+  placeholderReset();
   resetLayers();
   clearDistrict();
   states = [];
@@ -505,15 +549,13 @@ countrySel.addEventListener("change", async () => {
   }
 
   setTitle(country.name);
-  fitEnvelope(country.envelope);
+  placeholderFit(country.envelope);
   previewPlace(country.name, country.envelope);
   say(country.name + " selected");
 
   await loadStates(country.id);
   if (token !== selToken) return;
 
-  // A country without sub-areas: use the country itself.
-  if (states.length === 0) selectGeography(country, token);
 });
 
 // ---- 2. States -------------------------------------------------------------
@@ -542,15 +584,22 @@ stateSel.addEventListener("change", () => {
 
   const geo = states.find((s) => s.id === stateSel.value);
   if (!geo) {
+    EaeController.clear();
     fill(districtSel, [], "Select a state first");
     const country = countries.find((c) => c.id === countrySel.value);
-    if (country) previewPlace(country.name, country.envelope);
+    if (country) {
+      placeholderFit(country.envelope);
+      previewPlace(country.name, country.envelope);
+    } else {
+      placeholderReset();
+      previewReset();
+    }
     say("");
     return;
   }
 
   setTitle(geo.name);
-  fitEnvelope(geo.envelope);
+  placeholderFit(geo.envelope);
   previewPlace(geo.name, geo.envelope);
   say(geo.name + " selected");
   selectGeography(geo, token);
@@ -560,6 +609,10 @@ stateSel.addEventListener("change", () => {
 async function selectGeography(geo, token) {
   fill(districtSel, [], "Loading...");
   datasetList.innerHTML = '<li class="empty">Loading layers...</li>';
+
+  if (typeof updateScenarioDropdown === "function") {
+    updateScenarioDropdown(geo.id);
+  }
 
   if (typeof EaeController !== "undefined" && geo && geo.id) {
     EaeController.load(geo.id);
@@ -581,7 +634,6 @@ async function selectGeography(geo, token) {
   refresh();
 
   loadOutline(datasets, token);
-  loadDistricts(datasets, token);
 }
 
 // The preview map shows the real outline when the geography has one.
@@ -595,60 +647,40 @@ async function loadOutline(list, token) {
   }
 }
 
-// ---- 4. Districts ----------------------------------------------------------
-async function loadDistricts(list, token) {
-  try {
-    const result = await fetchDistricts(list);
-    if (token !== selToken) return;
-
-    if (!result) {
-      fill(districtSel, [], "No district data");
-      return;
-    }
-    districtFeatures = result.features;
-    districtProp = result.prop;
-    if (!districtProp) {
-      fill(districtSel, [], "No district names found");
-      return;
-    }
-
-    const names = [
-      ...new Set(
-        districtFeatures
-          .map((f) => (f.properties || {})[districtProp])
-          .filter(Boolean),
-      ),
-    ].sort();
-    fill(
-      districtSel,
-      names.map((n) => ({ value: n, label: n })),
-      "Select a district...",
-    );
-  } catch (e) {
-    if (token !== selToken) return;
-    console.warn("District file not readable:", e);
+// ---- 4. Districts (driven by eae:ready divisions) --------------------------
+window.onDivisionsLoaded = function (divisions) {
+  if (!divisions || !divisions.length) {
     fill(districtSel, [], "District list unavailable");
-    say("Could not read district file (probably CORS): " + e.message);
-  }
-}
-
-districtSel.addEventListener("change", () => {
-  clearDistrictLayer();
-  if (!districtSel.value || !districtProp) {
-    setClip(null); // no district: layers show the whole area again
-    previewDistrict(null);
-    renderResults();
-    say("");
     return;
   }
-  const feats = districtFeatures.filter(
-    (f) => (f.properties || {})[districtProp] === districtSel.value,
-  );
-  showDistrict(feats);
-  setClip(feats); // filter every layer to this district
-  previewDistrict(feats, districtSel.value);
-  renderResults();
-  say("District: " + districtSel.value);
+
+  // Find administrative tier 1 (districts)
+  const tier1 = divisions.find((d) => d.tier === 1) || divisions[0];
+  if (!tier1 || !tier1.entries || !tier1.entries.length) {
+    fill(districtSel, [], "No districts found");
+    return;
+  }
+
+  const items = tier1.entries
+    .map((e) => ({ value: String(e.id), label: e.name }))
+    .sort((a, b) => a.label.localeCompare(b.label));
+
+  fill(districtSel, items, "Select a district...");
+  districtSel.disabled = false;
+};
+
+districtSel.addEventListener("change", () => {
+  if (!districtSel.value) {
+    say("");
+    syncUrl();
+    return;
+  }
+
+  const subdivId = Number(districtSel.value);
+  EaeController.send({ divtier: 1, subdiv: subdivId });
+  const opt = districtSel.options[districtSel.selectedIndex];
+  say("District: " + (opt ? opt.text : districtSel.value));
+  syncUrl();
 });
 
 // ---- 5. Layers (toggle switches) -------------------------------------------
@@ -739,56 +771,59 @@ window.addEventListener("resize", previewResize);
   s.addEventListener("change", syncUrl),
 );
 
-// ---- Crops (mock datasets) -------------------------------------------------
-const cropSel = $("crop");
-if (cropSel && typeof CROPS !== "undefined") {
+// ---- Scenarios (mentor snapshots) ------------------------------------------
+function updateScenarioDropdown(stateId) {
+  if (!cropSel || typeof CROPS === "undefined") return;
+
+  const validScenarios = CROPS.filter((c) => c.geography === stateId);
+  if (!validScenarios.length) {
+    fill(cropSel, [], "No scenarios for this area yet");
+    cropSel.disabled = true;
+    return;
+  }
+
   fill(
     cropSel,
-    CROPS.map((c) => ({ value: c.id, label: c.label })),
-    "Select a crop",
+    validScenarios.map((c) => ({ value: c.id, label: c.label })),
+    "Select a scenario",
   );
+  cropSel.disabled = false;
+}
 
+if (cropSel) {
   cropSel.addEventListener("change", () => {
-    const currentCropId = cropSel.value;
-    // Hide all crops first
-    CROPS.forEach((c) => {
-      const checkbox = document.querySelector(`input[aria-label="${esc(c.dataset)}"]`);
-      if (checkbox && checkbox.checked) {
-        checkbox.checked = false;
-        const cropDataset = datasets.find((d) => d.name_long === c.dataset);
-        if (cropDataset) toggleLayer(cropDataset, checkbox);
-      }
-    });
+    const stateId = stateSel.value;
+    if (!stateId) return;
 
-    if (currentCropId) {
-      const selectedCrop = CROPS.find((c) => c.id === currentCropId);
-      let cropDataset = datasets.find((d) => d.name_long === selectedCrop.dataset);
-      
-      // MOCK DATASET INJECTION:
-      // Since the API doesn't have the crop data yet, we generate a mock dataset
-      // pointing to our local GeoJSON file so the map actually draws something.
-      if (!cropDataset) {
-        cropDataset = {
-          id: "mock_" + selectedCrop.id,
-          name_long: selectedCrop.label + " Suitability",
-          category: "demand",
-          type: "polygons",
-          source_files: [{ func: "vectors", endpoint: "../data/mock-crop.geojson" }]
-        };
-      }
+    const selectedCrop = typeof CROPS !== "undefined"
+      ? CROPS.find((c) => c.id === cropSel.value)
+      : null;
 
-      // Try to find the actual checkbox if it exists in the UI
-      const checkbox = document.querySelector(`input[aria-label="${esc(cropDataset.name_long)}"]`);
-      if (checkbox) {
-        checkbox.checked = true;
-        toggleLayer(cropDataset, checkbox);
-      } else {
-        // If not in UI, fake the checkbox so toggleLayer still works
-        toggleLayer(cropDataset, { checked: true, closest: () => ({ classList: { add: () => {} } }) });
-      }
+    if (selectedCrop && selectedCrop.snapshot) {
+      say("Loaded mock analysis: " + selectedCrop.label);
+      EaeController.load(stateId, { snapshot: selectedCrop.snapshot });
+    } else {
+      say("Restored baseline state view");
+      EaeController.load(stateId);
     }
+
+    syncUrl();
   });
 }
+
+// ---- Suitable areas criteria toggle ----------------------------------------
+if (criteriaToggle) {
+  criteriaToggle.addEventListener("change", () => {
+    const isChecked = criteriaToggle.checked;
+    EaeController.send({ criteria: isChecked });
+    say(isChecked ? "Only suitable areas enabled" : "Criteria mask disabled");
+    syncUrl();
+  });
+}
+
+window.onEaeViewChanged = function (view) {
+  updateFullMapLink();
+};
 
 // Wait until a condition is true (or give up after `ms`).
 const waitFor = (test, ms = 20000) =>
@@ -821,10 +856,22 @@ async function restoreFromUrl() {
       stateSel.dispatchEvent(new Event("change"));
     }
 
-    // District first, so the layers are clipped to it when they load.
+    // District first
     if (dName && (await waitFor(() => hasOption(districtSel, dName)))) {
       districtSel.value = dName;
       districtSel.dispatchEvent(new Event("change"));
+    }
+
+    const scenarioId = initialParams.get("scenario");
+    if (scenarioId && cropSel && (await waitFor(() => hasOption(cropSel, scenarioId)))) {
+      cropSel.value = scenarioId;
+      cropSel.dispatchEvent(new Event("change"));
+    }
+
+    const criteriaParam = initialParams.get("criteria");
+    if (criteriaParam && criteriaToggle) {
+      criteriaToggle.checked = (criteriaParam === "1" || criteriaParam === "true");
+      criteriaToggle.dispatchEvent(new Event("change"));
     }
 
     if (layerIds.length) {
@@ -852,7 +899,6 @@ async function restoreFromUrl() {
 refresh();
 if (typeof EaeController !== "undefined") EaeController.init("eae-frame");
 loadCountries().then(restoreFromUrl);
-
 
 
 
