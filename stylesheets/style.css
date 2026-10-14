@@ -12,6 +12,8 @@
   --side-w: 400px;
   --rail-w: 108px;
   --results-w: 280px;
+  --bar-h: 56px; /* height of the toolbar row above the map */
+  --ctl-h: 36px; /* height shared by every toolbar control */
 }
 
 * {
@@ -97,6 +99,35 @@ button {
   padding: 0;
 }
 
+/* Close (X) button for the mobile drawer; hidden on desktop */
+#side-close {
+  display: none;
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: #fff;
+  font-size: 28px;
+  line-height: 1;
+}
+
+#side-close:hover {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+#side-close:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+
 #side-body {
   flex: 1;
   min-height: 0;
@@ -159,6 +190,19 @@ button {
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: var(--muted);
+}
+
+/* "Only suitable areas" checkbox (was inline style in the HTML) */
+#area #criteria-label {
+  flex-direction: row;
+  align-items: center;
+  gap: 8px;
+  margin-top: 4px;
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--text);
+  cursor: pointer;
 }
 
 #area select {
@@ -391,38 +435,83 @@ button {
   cursor: not-allowed;
 }
 
-/* ---- Stage: tabs + map ------------------------------------------------ */
+/* ======================================================================
+   STAGE: toolbar row (menu | tabs | actions) stacked above the map.
+   The toolbar is in normal flow, so it never overlaps the map, the
+   Leaflet zoom buttons or anything inside the EAE iframe.
+   ====================================================================== */
 #stage {
   flex: 1;
   min-width: 0;
-  position: relative;
-}
-
-#map {
-  position: absolute;
-  inset: 0;
-}
-
-#tabs {
-  position: absolute;
-  top: 16px;
-  left: 50%;
-  transform: translateX(-50%);
-  z-index: 1000;
+  min-height: 0;
   display: flex;
-  width: min(440px, calc(100% - 120px));
+  flex-direction: column;
+  position: relative;
+  background: #f8f9fa;
+}
+
+#stage-bar {
+  flex: none;
+  height: var(--bar-h);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 14px;
   background: #fff;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  border-bottom: 1px solid var(--grey-line);
+  /* sits above Leaflet panes/controls, below dialogs and the drawer */
+  position: relative;
+  z-index: 1100;
+}
+
+/* Hamburger: hidden on desktop, a normal toolbar item on mobile */
+#menu-btn {
+  display: none;
+  flex: none;
+  width: var(--ctl-h);
+  height: var(--ctl-h);
+  padding: 0;
+  align-items: center;
+  justify-content: center;
+  border: 0;
+  border-radius: 4px;
+  background: var(--green);
+  color: #fff;
+  font-size: 18px;
+  line-height: 1;
+}
+
+#menu-btn:hover {
+  background: var(--green-dark);
+}
+
+/* Tabs */
+#tabs {
+  flex: 0 1 360px;
+  min-width: 0;
+  display: flex;
+  height: var(--ctl-h);
+  background: #fff;
+  border: 1px solid var(--green);
+  border-radius: 4px;
+  overflow: hidden;
 }
 
 .tab {
   flex: 1;
+  min-width: 0;
   border: 0;
   background: #fff;
   color: var(--green);
   font-weight: 700;
-  font-size: 15px;
-  padding: 14px 8px;
+  font-size: 14px;
+  padding: 0 16px;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s;
+}
+
+.tab:hover:not(.active) {
+  background: var(--green-light);
 }
 
 .tab.active {
@@ -430,20 +519,140 @@ button {
   color: #fff;
 }
 
-#menu-btn {
-  display: none;
-  position: absolute;
-  top: 16px;
-  left: 12px;
-  z-index: 1000;
-  width: 44px;
-  height: 44px;
-  border: 0;
+/* Right-hand actions. margin-left:auto keeps them on the right even when
+   the tabs are hidden (eae-mode). */
+#stage-actions {
+  flex: none;
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Share button and Open-full-map link share ONE look and ONE height */
+#share-btn,
+#full-map-link {
+  height: var(--ctl-h);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 0 14px;
+  border: 1px solid var(--green);
   border-radius: 4px;
-  background: var(--green);
-  color: #fff;
-  font-size: 20px;
-  box-shadow: 0 1px 6px rgba(0, 0, 0, 0.3);
+  background: #fff;
+  color: var(--green);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  white-space: nowrap;
+  text-decoration: none;
+  transition: background 0.15s, color 0.15s;
+}
+
+#share-btn:hover,
+#full-map-link:hover {
+  background: var(--green-light);
+}
+
+#share-btn:focus-visible,
+#full-map-link:focus-visible,
+#menu-btn:focus-visible,
+.tab:focus-visible {
+  outline: 2px solid var(--green-dark);
+  outline-offset: 2px;
+}
+
+/* Map area fills what is left under the toolbar */
+#map-frame-wrapper {
+  position: relative;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+  background: #aad3df;
+}
+
+#placeholder-map {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  background: #aad3df;
+}
+
+#placeholder-map .leaflet-container {
+  background: #aad3df;
+}
+
+#eae-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border: 0;
+  display: none;
+  background: #f3f3f3;
+}
+
+/* Loading overlay */
+#eae-loader {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  background: transparent;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 16px;
+  color: var(--green-dark);
+  font-size: 15px;
+  font-weight: 600;
+  pointer-events: none;
+}
+
+.spinner {
+  width: 36px;
+  height: 36px;
+  border: 4px solid var(--green-light);
+  border-top-color: var(--green);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Error fallback */
+#eae-error {
+  position: absolute;
+  inset: 0;
+  z-index: 500;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 24px;
+  text-align: center;
+}
+
+#eae-error p {
+  margin: 0;
+  font-size: 15px;
+  color: #c53030;
+  font-weight: 600;
+}
+
+#eae-error-link {
+  color: var(--green);
+  font-weight: bold;
+  text-decoration: underline;
 }
 
 /* Hover tooltip + click popup on the map */
@@ -495,6 +704,13 @@ button {
   margin-top: 4px;
   font-size: 11px;
   color: var(--muted);
+}
+
+/* Hide the wrapper interface only after the EAE iframe is revealed. */
+body.eae-mode #results,
+body.eae-mode #preview,
+body.eae-mode #stage-bar #tabs {
+  display: none !important;
 }
 
 /* ---- Right panel ------------------------------------------------------ */
@@ -850,7 +1066,6 @@ dialog button.ghost {
   min-width: 0;
 }
 
-
 .values-error {
   min-height: 18px;
   margin: 0 0 8px;
@@ -871,16 +1086,27 @@ dialog button.ghost {
     --rail-w: 92px;
     --results-w: 240px;
   }
+
   .rail-item {
     font-size: 13px;
     padding-left: 12px;
+  }
+
+  #tabs {
+    flex-basis: 280px;
+  }
+
+  .tab {
+    padding: 0 10px;
+    font-size: 13px;
   }
 }
 
 /* ---- Mobile: side panel becomes a drawer, results a bottom sheet ------ */
 @media (max-width: 800px) {
-  #menu-btn {
-    display: block;
+  #menu-btn,
+  #side-close {
+    display: inline-flex;
   }
 
   #side {
@@ -899,24 +1125,8 @@ dialog button.ghost {
     transform: none;
   }
 
-  #tabs {
-    left: 64px;
-    right: 12px;
-    width: auto;
-    transform: none;
-  }
-
-  .tab {
-    padding: 12px 4px;
-    font-size: 13px;
-  }
-
   #main {
     flex-direction: column;
-  }
-
-  #stage {
-    flex: 1;
   }
 
   #results {
@@ -944,289 +1154,61 @@ dialog button.ghost {
     justify-content: center;
   }
 }
-/* Appended EAE Iframe, Stage Bar, Loader, and Phone Layout enhancements */
 
-#stage {
-  position: relative;
-  flex: 1;
-  min-width: 0;
-  display: flex;
-  flex-direction: column;
-  background: #f8f9fa;
-}
+/* ---- Phones: compact toolbar so everything fits on one line ----------- */
+@media (max-width: 600px) {
+  :root {
+    --bar-h: 52px;
+    --ctl-h: 34px;
+  }
 
-#stage-bar {
-  position: absolute;
-  top: 14px;
-  left: 14px;
-  right: 14px;
-  z-index: 1000;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  pointer-events: none;
-}
-
-#stage-bar > * {
-  pointer-events: auto;
-}
-
-#tabs {
-  position: static;
-  transform: none;
-  display: flex;
-  background: #fff;
-  border-radius: 4px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
-  border: 1px solid var(--grey-line);
-}
-
-.tab {
-  border: 0;
-  background: #fff;
-  color: var(--green);
-  font-weight: 700;
-  font-size: 14px;
-  padding: 10px 24px;
-  transition: background 0.15s, color 0.15s;
-}
-
-.tab.active {
-  background: var(--green);
-  color: #fff;
-}
-
-#stage-actions {
-  display: flex;
-  gap: 8px;
-}
-
-#full-map-link {
-  background: #fff;
-  color: var(--green);
-  font-weight: 600;
-  font-size: 13px;
-  padding: 10px 16px;
-  border-radius: 4px;
-  text-decoration: none;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  border: 1px solid var(--grey-line);
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-}
-
-#full-map-link:hover {
-  background: var(--green-light);
-}
-
-#map-frame-wrapper {
-  position: relative;
-  flex: 1;
-  width: 100%;
-  height: 100%;
-  overflow: hidden;
-}
-
-#eae-frame {
-  width: 100%;
-  height: 100%;
-  border: 0;
-  display: block;
-  background: #f3f3f3;
-}
-
-/* Loading Overlay */
-#eae-loader {
-  position: absolute;
-  inset: 0;
-  z-index: 500;
-  background: rgba(255, 255, 255, 0.92);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-  color: var(--green-dark);
-  font-size: 15px;
-  font-weight: 600;
-}
-
-.spinner {
-  width: 36px;
-  height: 36px;
-  border: 4px solid var(--green-light);
-  border-top-color: var(--green);
-  border-radius: 50%;
-  animation: spin 0.8s linear infinite;
-}
-
-@keyframes spin {
-  to { transform: rotate(360deg); }
-}
-
-/* Error Fallback */
-#eae-error {
-  position: absolute;
-  inset: 0;
-  z-index: 500;
-  background: #fff;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 12px;
-  padding: 24px;
-  text-align: center;
-}
-
-#eae-error p {
-  margin: 0;
-  font-size: 15px;
-  color: #c53030;
-  font-weight: 600;
-}
-
-#eae-error-link {
-  color: var(--green);
-  font-weight: bold;
-  text-decoration: underline;
-}
-
-/* Mobile Adjustments (<= 768px) */
-@media (max-width: 768px) {
   #stage-bar {
-    top: 10px;
-    left: 64px;
-    right: 10px;
-    flex-wrap: wrap;
-    gap: 8px;
+    padding: 0 8px;
+    gap: 6px;
+  }
+
+  #tabs {
+    flex: 1 1 auto;
   }
 
   .tab {
-    padding: 8px 14px;
+    padding: 0 8px;
     font-size: 12px;
   }
 
-  #full-map-link {
-    padding: 8px 10px;
-    font-size: 12px;
-  }
-}
-
-/* ---- Share link button ------------------------------------------------- */
-#share-btn {
-  position: relative;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  min-width: 124px;
-  padding: 10px 16px;
-  margin: 0;
-  border: 1px solid var(--green);
-  border-radius: 4px;
-  background: var(--green);
-  color: #fff;
-  font-weight: 600;
-  font-size: 13px;
-  line-height: 1.2;
-  white-space: nowrap;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
-  transition: background 0.15s, border-color 0.15s, color 0.15s,
-    transform 0.1s, box-shadow 0.15s;
-  -webkit-tap-highlight-color: transparent;
-}
-
-/* Icon drawn with a mask so it always takes the text color */
-#share-btn::before {
-  content: "";
-  flex: none;
-  width: 16px;
-  height: 16px;
-  background: currentColor;
-  -webkit-mask: var(--share-icon) center / contain no-repeat;
-  mask: var(--share-icon) center / contain no-repeat;
-  --share-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71'/%3E%3Cpath d='M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71'/%3E%3C/svg%3E");
-}
-
-#share-btn:hover {
-  background: var(--green-dark);
-  border-color: var(--green-dark);
-  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.28);
-}
-
-#share-btn:active {
-  transform: translateY(1px);
-  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.25);
-}
-
-#share-btn:focus-visible {
-  outline: 2px solid var(--green-dark);
-  outline-offset: 2px;
-}
-
-/* Copied */
-#share-btn.share-ok {
-  background: #fff;
-  color: var(--green);
-  border-color: var(--green);
-}
-
-#share-btn.share-ok::before {
-  --share-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
-}
-
-/* Copy failed */
-#share-btn.share-fail {
-  background: #fff;
-  color: #b42318;
-  border-color: #b42318;
-}
-
-#share-btn.share-fail::before {
-  --share-icon: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M18 6 6 18M6 6l12 12'/%3E%3C/svg%3E");
-}
-
-/* Let the action buttons wrap instead of overflowing on narrow screens */
-#stage-actions {
-  flex-wrap: wrap;
-  justify-content: flex-end;
-  align-items: center;
-}
-
-/* Tablet / phone: slightly smaller */
-@media (max-width: 768px) {
-  #share-btn {
-    min-width: 0;
-    padding: 8px 10px;
-    font-size: 12px;
+  #stage-actions {
     gap: 6px;
   }
-  #share-btn::before {
-    width: 14px;
-    height: 14px;
+
+  #share-btn,
+  #full-map-link {
+    padding: 0 10px;
+    font-size: 12px;
   }
 }
 
-/* Small phones: icon-only button (label stays available to screen readers) */
+/* Very narrow phones (360px): the "Open full map" link keeps only its arrow */
 @media (max-width: 480px) {
-  #share-btn {
-    width: 38px;
-    height: 36px;
-    padding: 0;
+  :root {
+    --side-w: 100vw;
   }
-  #share-btn .share-label {
+
+  #main {
+    height: 100%;
+  }
+
+  #full-map-link .full-label {
     position: absolute;
     width: 1px;
     height: 1px;
-    margin: -1px;
     overflow: hidden;
     clip: rect(0 0 0 0);
     white-space: nowrap;
   }
+
   #full-map-link {
-    padding: 8px 10px;
+    width: var(--ctl-h);
+    padding: 0;
+    font-size: 16px;
   }
 }

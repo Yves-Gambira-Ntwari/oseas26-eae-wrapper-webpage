@@ -1,23 +1,65 @@
-<!-- First of all, thank you for your contribution to this repository! -->
+<!-- Title reminder: type: short summary (e.g. feat: add EAE iframe wrapper with boundary and scenario selectors) -->
+<!-- Conventional Commits: feat:, fix:, docs:, chore:, refactor:, revert: ("fix:" only for bugs in a preceding feat) -->
 
-<!-- Please give the Pull Request a meaningful title for the release notes -->
+## Linked issue
+Closes #
+Refs #
 
-### Brief summary of the change made
+## Problem
+<!-- What was wrong or missing, for whom (2 to 4 lines) -->
 
-<!-- Please include `closes: #XXXX` to automatically close any corresponding issue when the pull request is merged. Alternatively if not fully closed you can say `makes progress on: #XXXX`.-->
+## What changed
+<!-- Grouped by area, one line each -->
+- 
 
-### Are there any other side effects of this change that we should be aware of?
+## Impact
+- **Who benefits**: 
+- **What changes for users**: 
+- **Potential breaking changes / risks**: 
+- **Backward compatibility**: 
+- **Behaviour without the new flag/config**: 
+- **Config values added or changed**: 
+- **Contract (URL parameters / messages) added or changed**: 
 
-### Describe how you tested your changes?
+## How to test
+<!-- Exact commands and manual steps (numbered) -->
+1. 
 
-<!-- For manual testing-please provide detailed steps, screenshots, etc.. -->
-<!-- If the repository provides unit tests, please add test cases covering the changes. -->
+## Test results
+| Check | Command or Steps | Result | Environment |
+| :--- | :--- | :--- | :--- |
+| Local server startup | `npx http-server -p 8000 -c-1` | HTTP 200 | Node.js / localhost |
+| Manual interaction checklist | Browser manual flow | [PENDING: my browser test] | Chrome |
 
-### Pull Request checklist
+## Screenshots / recording
+<!-- Before and after; one line caption each -->
+- **Before**: 
+- **After**: 
 
-Please confirm you have completed any of the necessary steps below.
+## Documentation
+- [ ] README.md updated
+- [ ] Docs files updated
+- [ ] Config files documented
 
-- [ ] Meaningful Pull Request title and description
-- [ ] Changes tested as described above
-- [ ] Added appropriate documentation for the change.
-- [ ] Created GitHub issues for any relevant followup/future enhancements if appropriate.
+## Known limitations and out of scope
+- 
+
+## Where to look first / least sure about
+<!-- Guide reviewers on where to start inspecting -->
+- 
+
+## AI assistance disclosure
+- **Drafted by AI**: 
+- **User modifications / rewrites**: 
+- **Run and verified independently**: 
+
+## Checklist
+- [ ] Forked repository and used a dedicated feature/docs branch
+- [ ] Branch not pushed directly to main
+- [ ] One logical change per PR
+- [ ] Conventional Commits title format
+- [ ] Issue linked or marked as minor
+- [ ] Tests executed locally with real results reported
+- [ ] Coding style matches surrounding codebase
+- [ ] No secrets, local paths, or build artifacts committed
+- [ ] Documentation updated
