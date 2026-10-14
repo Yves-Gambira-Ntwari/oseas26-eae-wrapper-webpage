@@ -105,15 +105,32 @@ What is not done: actual crop models do not exist in EAE; scenario data is restr
 
 ## 2. Demo
 
-Screenshots representing key interactions:
+Key interactions from the automated test run:
 
-- `docs/screenshots/01-default-world-view.png`: Initial page load showing the Leaflet world map placeholder and empty dropdowns.
-- `docs/screenshots/02-nagaland-loaded.png`: Nagaland loaded inside the EAE iframe with side panels collapsed.
-- `docs/screenshots/03-district-zoom-kohima.png`: Kohima district selected, showing automatic camera zoom and administrative boundary outline.
-- `docs/screenshots/04-scenario-maize-solar.png`: Scenario 1 (Population Count & Solar GHI) active with suitability mask.
-- `docs/screenshots/05-mobile-360px.png`: Layout rendered in a 360 px width viewport.
+### 1. Default World View
+Initial page load showing the Leaflet world map placeholder before any geography is selected:
+![Default World View](docs/screenshots/01-default-world-view.png)
 
-*(Image files to be placed in `docs/screenshots/` upon manual capture).*
+### 2. Nagaland Loaded in Embed Mode
+Nagaland state loaded inside the EAE iframe with top chrome hidden and side panels collapsed:
+![Nagaland Loaded](docs/screenshots/02-nagaland-loaded.png)
+
+### 3. District Zoom (Kohima)
+District selection automatically zooming the camera to Kohima with administrative boundaries:
+![District Zoom Kohima](docs/screenshots/03-district-zoom-kohima.png)
+
+### 4. Scenario 1 (Population Count & Solar GHI)
+Preconfigured mentor snapshot loaded without full page refresh:
+![Scenario 1 Applied](docs/screenshots/04-scenario-maize-solar.png)
+
+### 5. Criteria Mask (Only Suitable Areas)
+Suitability criteria filter active, highlighting suitable areas on the EAE canvas:
+![Criteria Mask On](docs/screenshots/06-criteria-mask-on.png)
+
+### 6. Mobile 360 px Viewport
+Responsive interface rendered at 360 px width:
+<img src="docs/screenshots/05-mobile-360px.png" alt="Mobile 360px View" width="360">
+
 
 ## 3. Challenge requirements and status
 
