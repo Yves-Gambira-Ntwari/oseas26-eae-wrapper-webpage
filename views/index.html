@@ -16,6 +16,9 @@
         <!-- LEFT: brand header + category rail + dataset/boundary panel -->
         <div id="side">
           <header id="brand">
+            <button id="side-close" type="button" aria-label="Close menu">
+              &times;
+            </button>
             <h1 id="title">Select a country</h1>
             <button id="about-btn" type="button" aria-label="About this map">
               i
@@ -257,5 +260,25 @@
     <script src="../src/embed.js?v=12"></script>
     <script src="../src/preview.js?v=12"></script>
     <script src="../src/main.js?v=12"></script>
+    <script>
+      // Close the mobile side drawer: X button, Escape key, or tap on the map
+      (function () {
+        var side = document.getElementById("side");
+        var closeBtn = document.getElementById("side-close");
+        function closeSide() {
+          side.classList.remove("open");
+        }
+        closeBtn.addEventListener("click", closeSide);
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape") closeSide();
+        });
+        document
+          .getElementById("stage")
+          .addEventListener("click", function (e) {
+            if (e.target.closest("#menu-btn")) return;
+            if (side.classList.contains("open")) closeSide();
+          });
+      })();
+    </script>
   </body>
 </html>
