@@ -261,23 +261,49 @@
     <script src="../src/preview.js?v=12"></script>
     <script src="../src/main.js?v=12"></script>
     <script>
-      // Close the mobile side drawer: X button, Escape key, or tap on the map
+      // Close the mobile side drawer when: X is clicked, Escape is pressed,
+      // or the user clicks / focuses anything outside the sidebar.
       (function () {
         var side = document.getElementById("side");
-        var closeBtn = document.getElementById("side-close");
+        var frame = document.getElementById("eae-frame");
+        // Elements that belong to the sidebar's own UI and must not close it
+        var KEEP_OPEN = "#side, #menu-btn, #ds-menu, dialog";
+
+        function isOpen() {
+          return side.classList.contains("open");
+        }
         function closeSide() {
           side.classList.remove("open");
         }
-        closeBtn.addEventListener("click", closeSide);
-        document.addEventListener("keydown", function (e) {
-          if (e.key === "Escape") closeSide();
-        });
+        function isInside(node) {
+          return node && node.closest && node.closest(KEEP_OPEN);
+        }
+
         document
-          .getElementById("stage")
-          .addEventListener("click", function (e) {
-            if (e.target.closest("#menu-btn")) return;
-            if (side.classList.contains("open")) closeSide();
-          });
+          .getElementById("side-close")
+          .addEventListener("click", closeSide);
+
+        document.addEventListener("keydown", function (e) {
+          if (e.key === "Escape" && isOpen()) closeSide();
+        });
+
+        // Pointer press anywhere outside (capture so nothing can stop it)
+        document.addEventListener(
+          "pointerdown",
+          function (e) {
+            if (isOpen() && !isInside(e.target)) closeSide();
+          },
+          true,
+        );
+
+        document.addEventListener("focusin", function (e) {
+          if (isOpen() && !isInside(e.target)) closeSide();
+        });
+        window.addEventListener("blur", function () {
+          setTimeout(function () {
+            if (isOpen() && document.activeElement === frame) closeSide();
+          }, 0);
+        });
       })();
     </script>
   </body>
