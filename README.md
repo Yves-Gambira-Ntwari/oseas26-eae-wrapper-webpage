@@ -105,31 +105,56 @@ What is not done: actual crop models do not exist in EAE; scenario data is restr
 
 ## 2. Demo
 
-Key interactions from the automated test run:
+All key interactions and states are captured below from verified local runs:
 
 ### 1. Default World View
-Initial page load showing the Leaflet world map placeholder before any geography is selected:
-![Default World View](docs/screenshots/01-default-world-view.png)
+Initial page load showing the Leaflet world map placeholder stage with no geography selected:
+![01 Default World View](docs/screenshots/01-default-world-view.png)
 
-### 2. Nagaland Loaded in Embed Mode
-Nagaland state loaded inside the EAE iframe with top chrome hidden and side panels collapsed:
-![Nagaland Loaded](docs/screenshots/02-nagaland-loaded.png)
+### 2. Country Selection (India)
+Placeholder map automatically frames the national boundary of India while awaiting state selection:
+![02 Country Selected India](docs/screenshots/02-country-selected-india.png)
 
-### 3. District Zoom (Kohima)
-District selection automatically zooming the camera to Kohima with administrative boundaries:
-![District Zoom Kohima](docs/screenshots/03-district-zoom-kohima.png)
+### 3. Tool Direct Embed Mode
+Direct standalone view of the EAE analysis screen running with `?embed=1` (navigation chrome and feedback button hidden):
+![03 Tool Direct Embed Mode](docs/screenshots/03-tool-direct-embed-mode.png)
 
-### 4. Scenario 1 (Population Count & Solar GHI)
-Preconfigured mentor snapshot loaded without full page refresh:
-![Scenario 1 Applied](docs/screenshots/04-scenario-maize-solar.png)
+### 4. Nagaland Loaded in Embed Mode
+Nagaland state loaded inside the wrapper iframe with left and right panels collapsed on initial load:
+![04 Nagaland Loaded](docs/screenshots/04-nagaland-loaded.png)
 
-### 5. Criteria Mask (Only Suitable Areas)
-Suitability criteria filter active, highlighting suitable areas on the EAE canvas:
-![Criteria Mask On](docs/screenshots/06-criteria-mask-on.png)
+### 5. State Fallback & Scenario Guard (Jharkhand)
+Selecting a state without mentor crop scenarios (e.g., Jharkhand) dynamically disables the scenario dropdown while rendering the state boundary:
+![05 Jharkhand Fallback](docs/screenshots/05-jharkhand-fallback.png)
 
-### 6. Mobile 360 px Viewport
-Responsive interface rendered at 360 px width:
-<img src="docs/screenshots/05-mobile-360px.png" alt="Mobile 360px View" width="360">
+### 6. District Zoom (Kohima)
+Selecting Kohima from the dynamically populated district dropdown zooms the camera and renders the district outline without reloading the iframe:
+![06 District Zoom Kohima](docs/screenshots/06-district-zoom-kohima.png)
+
+### 7. Scenario 1 Applied (Population Count & Solar GHI)
+Selecting Scenario 1 loads the preconfigured mentor snapshot (`1791614683478`):
+![07 Scenario 1 Applied](docs/screenshots/07-scenario-1-applied.png)
+
+### 8. Criteria Mask Active ("Only suitable areas")
+Checking "Only suitable areas" executes the criteria suitability filter on the raster canvas via postMessage:
+![08 Criteria Mask On](docs/screenshots/08-criteria-mask-on.png)
+
+### 9. Dataset Layer Toggling & Synchronization
+Activating individual layers (such as District Boundaries or Solar GHI) synchronizes exact layer visibility without removing the geography outline:
+![09 Layer Toggling Sync](docs/screenshots/09-layer-toggling-sync.png)
+
+### 10. URL State Restoration
+Re-opening the page with query parameters (`?country=...&state=...&district=...&scenario=...&criteria=1`) restores all selections and map state:
+![10 URL State Restore](docs/screenshots/10-url-state-restore.png)
+
+### 11. Loading State & Standalone Fallback Link
+Interactive loading spinner during initialization, with an "Open standalone map" fallback link:
+![11 Loading Fallback Link](docs/screenshots/11-loading-fallback-link.png)
+
+### 12. Mobile Responsive Layout (360 px Viewport)
+Full interface and map canvas adapt seamlessly to narrow phone viewports:
+<img src="docs/screenshots/12-mobile-responsive-360px.png" alt="Mobile 360px View" width="360">
+
 
 
 ## 3. Challenge requirements and status
